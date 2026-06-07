@@ -132,6 +132,26 @@
   .btn-confirmar:active{opacity:0.8;}
   .empty{text-align:center;padding:50px 20px;color:var(--muted);}
   .empty .ico{font-size:48px;margin-bottom:14px;}
+  .ff textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;resize:none;min-height:70px;line-height:1.5;}
+  .ff textarea:focus{border-color:var(--accent);}
+  .nota-preview{font-size:11px;color:var(--muted2);max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-style:italic;}
+  .btn-nota{display:flex;align-items:center;gap:6px;width:100%;margin-top:10px;background:var(--card2);color:var(--muted2);border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
+  .btn-nota:active{opacity:0.7;}
+  .btn-nota.has-nota{color:var(--accent2);border-color:rgba(74,222,128,0.4);background:rgba(74,222,128,0.06);}
+  /* NOTA MODAL */
+  .nota-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:none;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+  .nota-modal-bg.open{display:flex;}
+  .nota-modal{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px calc(24px + var(--safe-bottom));width:100%;max-width:430px;animation:slideUp 0.3s cubic-bezier(.32,.72,0,1);}
+  .nota-modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+  .nota-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .nota-modal-header h3{font-size:17px;font-weight:800;}
+  .nota-modal-header .nota-fecha{font-size:12px;color:var(--muted2);}
+  .nota-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:15px;font-family:-apple-system,sans-serif;padding:14px;outline:none;-webkit-appearance:none;resize:none;min-height:140px;line-height:1.6;margin-bottom:12px;}
+  .nota-textarea:focus{border-color:var(--accent);}
+  .nota-modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn-nota-cancel{background:var(--card2);color:var(--muted2);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-nota-save{background:var(--accent);color:white;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-nota-save:active{opacity:0.8;}
 </style>
 </head>
 <body>
@@ -216,6 +236,22 @@
     <p>Selecciona el primer día. Los 30 días siguientes aparecen solos.</p>
     <input type="date" id="input-fecha" class="date-input-big">
     <button class="btn-confirmar" onclick="confirmarFecha()">Confirmar</button>
+  </div>
+</div>
+
+<!-- NOTA MODAL -->
+<div class="nota-modal-bg" id="nota-modal-bg" onclick="cerrarNotaModal(event)">
+  <div class="nota-modal">
+    <div class="nota-modal-handle"></div>
+    <div class="nota-modal-header">
+      <h3>📝 Nota</h3>
+      <span class="nota-fecha" id="nota-modal-fecha"></span>
+    </div>
+    <textarea class="nota-textarea" id="nota-modal-text" placeholder="Escribe lo que necesites recordar de este día..."></textarea>
+    <div class="nota-modal-btns">
+      <button class="btn-nota-cancel" onclick="cerrarNotaModal()">Cancelar</button>
+      <button class="btn-nota-save" onclick="guardarNota()">Guardar nota</button>
+    </div>
   </div>
 </div>
 
@@ -389,8 +425,9 @@ function renderDias(datos) {
     const entrada   = datos.find(x => x.idx === idx) || null;
     const pic       = entrada ? parsear(entrada.picadas) : 0;
     const hex       = entrada ? parsear(entrada.horas)   : 0;
-    const tieneAlgo = pic > 0 || hex > 0;
-    const dotCls    = hex > 0 ? 'has-horas' : tieneAlgo ? 'has-data' : '';
+    const nota      = entrada && entrada.nota ? entrada.nota : '';
+    const tieneAlgo = pic > 0 || hex > 0 || nota;
+    const dotCls    = hex > 0 ? 'has-horas' : (pic > 0 || nota) ? 'has-data' : '';
     const esHoy     = fecha.getTime() === hoy.getTime();
 
     // Card
@@ -409,6 +446,7 @@ function renderDias(datos) {
       '<div class="day-tags">' +
         (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + ' pic.</span>' : '') +
         (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
+        (entrada && entrada.nota ? '<span class="nota-preview">📝 ' + entrada.nota + '</span>' : '') +
       '</div>' +
       '<span class="chevron" id="chev-' + idx + '">▼</span>';
     hdr.addEventListener('click', () => toggleDia(idx));
@@ -431,6 +469,9 @@ function renderDias(datos) {
       ff.appendChild(inp);
       return { ff, inp };
     }
+
+    // Variable nota en memoria para este día
+    let notaActual = entrada && entrada.nota ? entrada.nota : '';
 
     const { ff: ffHin,  inp: inHin  } = mkInput('Hora entrada', 'time',   'hin-'  + idx, entrada?.horaEntrada);
     const { ff: ffHout, inp: inHout  } = mkInput('Hora salida',  'time',   'hout-' + idx, entrada?.horaSalida);
@@ -456,15 +497,23 @@ function renderDias(datos) {
     grid.appendChild(ffPic); grid.appendChild(ffHex);
     form.appendChild(grid);
 
+    // Botón nota
+    const btnNota = document.createElement('button');
+    btnNota.className = 'btn-nota' + (notaActual ? ' has-nota' : '');
+    btnNota.innerHTML = (notaActual ? '📝' : '🖊️') + ' <span>' + (notaActual ? 'Ver / editar nota' : 'Añadir nota del día') + '</span>';
+    btnNota.addEventListener('click', () => abrirNotaModal(idx, DIAS[fecha.getDay()] + ', ' + fecha.getDate() + ' de ' + MESES[fecha.getMonth()]));
+    form.appendChild(btnNota);
+
     const btnG = document.createElement('button');
     btnG.className = 'btn-guardar'; btnG.textContent = 'Guardar';
     btnG.addEventListener('click', () => {
       let datos = getDatos();
       const p = parsear(inPic.value);
       const h = parsear(inHex.value);
+      const nota = notaActual;
       datos = datos.filter(x => x.idx !== idx);
-      if (p > 0 || h > 0 || inHin.value || inHout.value)
-        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value });
+      if (p > 0 || h > 0 || inHin.value || inHout.value || nota)
+        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -553,6 +602,41 @@ function renderHistorial() {
       '</div>';
   });
   cont.innerHTML = html || '<div class="empty"><div class="ico">📊</div><p>Sin datos aún</p></div>';
+}
+
+// ─── NOTA MODAL ───
+let notaModalIdx = null;
+
+function abrirNotaModal(idx, fechaLabel) {
+  notaModalIdx = idx;
+  document.getElementById('nota-modal-fecha').textContent = fechaLabel;
+  const datos   = getDatos();
+  const entrada = datos.find(x => x.idx === idx) || null;
+  document.getElementById('nota-modal-text').value = entrada && entrada.nota ? entrada.nota : '';
+  document.getElementById('nota-modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('nota-modal-text').focus(), 300);
+}
+
+function cerrarNotaModal(e) {
+  if (!e || e.target === document.getElementById('nota-modal-bg'))
+    document.getElementById('nota-modal-bg').classList.remove('open');
+}
+
+function guardarNota() {
+  const nota  = document.getElementById('nota-modal-text').value.trim();
+  let datos   = getDatos();
+  const idx   = notaModalIdx;
+  const exist = datos.find(x => x.idx === idx);
+  if (exist) {
+    exist.nota = nota;
+  } else if (nota) {
+    datos.push({ idx, picadas:0, horas:0, horaEntrada:'', horaSalida:'', nota });
+  }
+  // Remove if completely empty
+  datos = datos.filter(x => x.picadas > 0 || x.horas > 0 || x.horaEntrada || x.nota);
+  setDatos(datos);
+  document.getElementById('nota-modal-bg').classList.remove('open');
+  renderAll();
 }
 
 // ─── INIT ───
