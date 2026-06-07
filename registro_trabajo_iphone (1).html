@@ -514,56 +514,104 @@ function renderResumen(datos) {
 
 function renderDias(datos) {
   const cont = document.getElementById('lista-dias');
+  cont.innerHTML = '';
   const total = new Date(anioActual, mesActual+1, 0).getDate();
-  let html = '';
-  for (let d = 1; d <= total; d++) {
-    const fecha   = new Date(anioActual, mesActual, d);
-    const diaSem  = DIAS[fecha.getDay()];
-    const entrada = datos.find(x => x.dia === d) || null;
-    const pic     = entrada ? (entrada.picadas || 0) : 0;
-    const hex     = entrada ? (entrada.horas   || 0) : 0;
-    const tieneAlgo = pic > 0 || hex > 0;
-    const dotCls  = hex > 0 ? 'has-horas' : tieneAlgo ? 'has-data' : '';
-    const esHoy   = d === new Date().getDate() && mesActual === new Date().getMonth() && anioActual === new Date().getFullYear();
 
-    html += `<div class="day-card" id="card-${d}">
-      <div class="day-header" onclick="toggleDia(${d})">
-        <div class="day-dot ${dotCls}"></div>
-        <div class="day-info">
-          <div class="day-name">${diaSem}${esHoy ? ' <span style="color:var(--accent);font-size:11px">· Hoy</span>' : ''}</div>
-          <div class="day-date">${d} de ${MESES[mesActual]} ${anioActual}</div>
-        </div>
-        <div class="day-tags">
-          ${pic > 0 ? `<span class="tag or">${pic.toLocaleString('es')}</span>` : ''}
-          ${hex > 0 ? `<span class="tag pu">${hex}h</span>` : ''}
-        </div>
-        <span class="chevron" id="chev-${d}">▼</span>
-      </div>
-      <div class="day-form" id="form-${d}">
-        <div class="form-grid">
-          <div class="ff">
-            <label>Hora entrada</label>
-            <input type="time" id="hin-${d}" value="${entrada?.horaEntrada||''}">
-          </div>
-          <div class="ff">
-            <label>Hora salida</label>
-            <input type="time" id="hout-${d}" value="${entrada?.horaSalida||''}">
-          </div>
-          <div class="ff">
-            <label>Picadas</label>
-            <input type="number" inputmode="numeric" id="pic-${d}" min="0" placeholder="0" value="${pic||''}">
-          </div>
-          <div class="ff">
-            <label>Horas extra</label>
-            <input type="number" inputmode="decimal" id="hex-${d}" min="0" step="0.5" placeholder="0.0" value="${hex||''}" onchange="this.value=this.value.replace(',','.');">
-          </div>
-        </div>
-        <button class="btn-guardar" onclick="guardarDia(${d})">Guardar</button>
-        ${tieneAlgo ? `<button class="btn-borrar" onclick="borrarDia(${d})">Borrar este día</button>` : ''}
-      </div>
-    </div>`;
+  for (let d = 1; d <= total; d++) {
+    const fecha    = new Date(anioActual, mesActual, d);
+    const diaSem   = DIAS[fecha.getDay()];
+    const entrada  = datos.find(x => x.dia === d) || null;
+    const pic      = entrada ? (parseFloat(entrada.picadas) || 0) : 0;
+    const hex      = entrada ? (parseFloat(entrada.horas)   || 0) : 0;
+    const tieneAlgo = pic > 0 || hex > 0;
+    const dotCls   = hex > 0 ? 'has-horas' : tieneAlgo ? 'has-data' : '';
+    const esHoy    = d === new Date().getDate() && mesActual === new Date().getMonth() && anioActual === new Date().getFullYear();
+
+    // Card
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.id = 'card-' + d;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'day-header';
+    header.innerHTML =
+      '<div class="day-dot ' + dotCls + '"></div>' +
+      '<div class="day-info">' +
+        '<div class="day-name">' + diaSem + (esHoy ? ' <span style="color:var(--accent);font-size:11px">· Hoy</span>' : '') + '</div>' +
+        '<div class="day-date">' + d + ' de ' + MESES[mesActual] + ' ' + anioActual + '</div>' +
+      '</div>' +
+      '<div class="day-tags">' +
+        (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + '</span>' : '') +
+        (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
+      '</div>' +
+      '<span class="chevron" id="chev-' + d + '">▼</span>';
+    header.addEventListener('click', function() { toggleDia(d); });
+
+    // Form
+    const form = document.createElement('div');
+    form.className = 'day-form';
+    form.id = 'form-' + d;
+
+    const grid = document.createElement('div');
+    grid.className = 'form-grid';
+
+    // Hora entrada
+    const ffHin = document.createElement('div'); ffHin.className = 'ff';
+    ffHin.innerHTML = '<label>Hora entrada</label>';
+    const inHin = document.createElement('input'); inHin.type = 'time'; inHin.id = 'hin-' + d;
+    inHin.value = entrada && entrada.horaEntrada ? entrada.horaEntrada : '';
+    inHin.addEventListener('change', function() { calcularHorasAuto(d); });
+    ffHin.appendChild(inHin); grid.appendChild(ffHin);
+
+    // Hora salida
+    const ffHout = document.createElement('div'); ffHout.className = 'ff';
+    ffHout.innerHTML = '<label>Hora salida</label>';
+    const inHout = document.createElement('input'); inHout.type = 'time'; inHout.id = 'hout-' + d;
+    inHout.value = entrada && entrada.horaSalida ? entrada.horaSalida : '';
+    inHout.addEventListener('change', function() { calcularHorasAuto(d); });
+    ffHout.appendChild(inHout); grid.appendChild(ffHout);
+
+    // Picadas
+    const ffPic = document.createElement('div'); ffPic.className = 'ff';
+    ffPic.innerHTML = '<label>Picadas</label>';
+    const inPic = document.createElement('input');
+    inPic.type = 'number'; inPic.inputMode = 'numeric'; inPic.id = 'pic-' + d;
+    inPic.min = '0'; inPic.placeholder = '0';
+    inPic.value = pic > 0 ? pic : '';
+    ffPic.appendChild(inPic); grid.appendChild(ffPic);
+
+    // Horas extra
+    const ffHex = document.createElement('div'); ffHex.className = 'ff';
+    ffHex.innerHTML = '<label>Horas extra</label>';
+    const inHex = document.createElement('input');
+    inHex.type = 'number'; inHex.inputMode = 'decimal'; inHex.id = 'hex-' + d;
+    inHex.min = '0'; inHex.step = '0.5'; inHex.placeholder = '0';
+    inHex.value = hex > 0 ? hex : '';
+    ffHex.appendChild(inHex); grid.appendChild(ffHex);
+
+    form.appendChild(grid);
+
+    // Botón guardar
+    const btnGuardar = document.createElement('button');
+    btnGuardar.className = 'btn-guardar';
+    btnGuardar.textContent = 'Guardar';
+    btnGuardar.addEventListener('click', function() { guardarDia(d); });
+    form.appendChild(btnGuardar);
+
+    // Botón borrar
+    if (tieneAlgo) {
+      const btnBorrar = document.createElement('button');
+      btnBorrar.className = 'btn-borrar';
+      btnBorrar.textContent = 'Borrar este día';
+      btnBorrar.addEventListener('click', function() { borrarDia(d); });
+      form.appendChild(btnBorrar);
+    }
+
+    card.appendChild(header);
+    card.appendChild(form);
+    cont.appendChild(card);
   }
-  cont.innerHTML = html;
 }
 
 function toggleDia(d) {
@@ -579,6 +627,27 @@ function toggleDia(d) {
 function parsearNumero(val) {
   // iOS a veces usa coma como separador decimal — lo normalizamos
   return parseFloat(String(val).replace(',', '.')) || 0;
+}
+
+function calcularHorasAuto(d) {
+  const hin  = document.getElementById('hin-' + d).value;
+  const hout = document.getElementById('hout-' + d).value;
+  if (!hin || !hout) return;
+
+  const [h1, m1] = hin.split(':').map(Number);
+  const [h2, m2] = hout.split(':').map(Number);
+
+  let minutos = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (minutos < 0) minutos += 24 * 60; // turno de noche (pasa medianoche)
+
+  const horas = Math.round((minutos / 60) * 100) / 100; // redondear a 2 decimales
+  const inHex = document.getElementById('hex-' + d);
+  if (inHex) {
+    inHex.value = horas;
+    // Resaltar el campo para que el usuario vea que se actualizó
+    inHex.style.borderColor = 'var(--accent2)';
+    setTimeout(() => { inHex.style.borderColor = ''; }, 1500);
+  }
 }
 
 function guardarDia(d) {
