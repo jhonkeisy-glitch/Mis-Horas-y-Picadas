@@ -414,7 +414,7 @@ function cargarConfig() {
 function calcular(datos) {
   const c = getConfig();
   let totalPicadas = 0, totalHoras = 0;
-  datos.forEach(d => { totalPicadas += d.picadas||0; totalHoras += d.horas||0; });
+  datos.forEach(d => { totalPicadas += parseFloat(d.picadas)||0; totalHoras += parseFloat(d.horas)||0; });
   const totalPicada  = totalPicadas * c.picada;
   const totalExtras  = totalHoras * c.extra;
   const totalTonto   = totalPicada + c.base + totalExtras;
@@ -555,7 +555,7 @@ function renderDias(datos) {
           </div>
           <div class="ff">
             <label>Horas extra</label>
-            <input type="number" inputmode="decimal" id="hex-${d}" min="0" step="0.5" placeholder="0" value="${hex||''}">
+            <input type="number" inputmode="decimal" id="hex-${d}" min="0" step="0.5" placeholder="0.0" value="${hex||''}" onchange="this.value=this.value.replace(',','.');">
           </div>
         </div>
         <button class="btn-guardar" onclick="guardarDia(${d})">Guardar</button>
@@ -576,10 +576,15 @@ function toggleDia(d) {
   if (!open) { form.classList.add('open'); chev.classList.add('open'); }
 }
 
+function parsearNumero(val) {
+  // iOS a veces usa coma como separador decimal — lo normalizamos
+  return parseFloat(String(val).replace(',', '.')) || 0;
+}
+
 function guardarDia(d) {
   let datos = getDatos(anioActual, mesActual);
-  const pic  = parseFloat(document.getElementById('pic-'+d).value)  || 0;
-  const hex  = parseFloat(document.getElementById('hex-'+d).value)  || 0;
+  const pic  = parsearNumero(document.getElementById('pic-'+d).value);
+  const hex  = parsearNumero(document.getElementById('hex-'+d).value);
   const hin  = document.getElementById('hin-'+d).value;
   const hout = document.getElementById('hout-'+d).value;
   datos = datos.filter(x => x.dia !== d);
