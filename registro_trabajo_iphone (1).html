@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Mis Horas">
 <meta name="theme-color" content="#0f1117">
 <title>Mis Horas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --bg:#0f1117;--card:#1a1d27;--card2:#21253a;--border:#2a2f45;
@@ -132,6 +134,30 @@
   .btn-confirmar:active{opacity:0.8;}
   .empty{text-align:center;padding:50px 20px;color:var(--muted);}
   .empty .ico{font-size:48px;margin-bottom:14px;}
+  /* SHARE BTN DÍA */
+  .btn-share-day{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;background:rgba(37,211,102,0.1);color:#25d366;border:1.5px solid rgba(37,211,102,0.3);border-radius:12px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
+  .btn-share-day:active{opacity:0.7;}
+  /* SHARE BTN MES */
+  .btn-share-mes{background:var(--card2);border:none;color:#25d366;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  /* PDF MODAL */
+  .pdf-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:none;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+  .pdf-modal-bg.open{display:flex;}
+  .pdf-modal{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px calc(24px + var(--safe-bottom));width:100%;max-width:430px;animation:slideUp 0.3s cubic-bezier(.32,.72,0,1);}
+  .pdf-modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+  .pdf-modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
+  .pdf-modal p{font-size:12px;color:var(--muted2);margin-bottom:16px;}
+  .pdf-opt{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card2);border:1.5px solid var(--border);border-radius:14px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;}
+  .pdf-opt:active{opacity:0.7;}
+  .pdf-opt.sel{border-color:var(--accent);background:rgba(108,99,255,0.1);}
+  .pdf-opt-icon{font-size:24px;flex-shrink:0;}
+  .pdf-opt-info h4{font-size:14px;font-weight:700;margin-bottom:2px;}
+  .pdf-opt-info p{font-size:11px;color:var(--muted2);}
+  .pdf-check{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pdf-opt.sel .pdf-check{background:var(--accent);border-color:var(--accent);}
+  .btn-generar{width:100%;margin-top:14px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-generar:active{opacity:0.8;}
+  /* CANVAS OFFSCREEN */
+  #canvas-dia{position:fixed;left:-9999px;top:0;width:390px;background:#0f1117;padding:24px;border-radius:20px;}
   .ff textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;resize:none;min-height:70px;line-height:1.5;}
   .ff textarea:focus{border-color:var(--accent);}
   .nota-preview{font-size:11px;color:var(--muted2);max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-style:italic;}
@@ -152,6 +178,11 @@
   .btn-nota-cancel{background:var(--card2);color:var(--muted2);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-nota-save{background:var(--accent);color:white;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-nota-save:active{opacity:0.8;}
+  .nota-inline{margin-top:10px;background:rgba(74,222,128,0.07);border:1.5px solid rgba(74,222,128,0.25);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s;}
+  .nota-inline:active{opacity:0.7;}
+  .nota-inline-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+  .nota-inline-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  .nota-inline-edit{font-size:10px;color:var(--muted);margin-top:6px;text-align:right;}
 </style>
 </head>
 <body>
@@ -160,9 +191,14 @@
 <div class="header">
   <div class="header-top">
     <h1>Mis <span>Horas</span></h1>
-    <button class="icon-btn" onclick="mostrarVista('historial')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    </button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-share-mes" onclick="abrirPdfModal()" title="Compartir mes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </button>
+      <button class="icon-btn" onclick="mostrarVista('historial')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </button>
+    </div>
   </div>
   <div class="month-row">
     <button onclick="cambiarMes(-1)">
@@ -238,6 +274,35 @@
     <button class="btn-confirmar" onclick="confirmarFecha()">Confirmar</button>
   </div>
 </div>
+
+<!-- PDF MODAL -->
+<div class="pdf-modal-bg" id="pdf-modal-bg" onclick="cerrarPdfModal(event)">
+  <div class="pdf-modal">
+    <div class="pdf-modal-handle"></div>
+    <h3>📄 Compartir mes</h3>
+    <p>Elige qué información incluir en el PDF</p>
+    <div class="pdf-opt sel" id="opt-completo" onclick="selPdfOpt('completo')">
+      <div class="pdf-opt-icon">📊</div>
+      <div class="pdf-opt-info">
+        <h4>Informe completo</h4>
+        <p>Todos los días + sueldo base + neto a cobrar</p>
+      </div>
+      <div class="pdf-check">✓</div>
+    </div>
+    <div class="pdf-opt" id="opt-sinSueldo" onclick="selPdfOpt('sinSueldo')">
+      <div class="pdf-opt-icon">📋</div>
+      <div class="pdf-opt-info">
+        <h4>Solo actividad</h4>
+        <p>Días, total picadas y horas extra — sin sueldo</p>
+      </div>
+      <div class="pdf-check"></div>
+    </div>
+    <button class="btn-generar" onclick="generarPDF()">Generar y compartir PDF</button>
+  </div>
+</div>
+
+<!-- CANVAS OFFSCREEN para imagen día -->
+<div id="canvas-dia"></div>
 
 <!-- NOTA MODAL -->
 <div class="nota-modal-bg" id="nota-modal-bg" onclick="cerrarNotaModal(event)">
@@ -497,12 +562,11 @@ function renderDias(datos) {
     grid.appendChild(ffPic); grid.appendChild(ffHex);
     form.appendChild(grid);
 
-    // Botón nota
-    const btnNota = document.createElement('button');
-    btnNota.className = 'btn-nota' + (notaActual ? ' has-nota' : '');
-    btnNota.innerHTML = (notaActual ? '📝' : '🖊️') + ' <span>' + (notaActual ? 'Ver / editar nota' : 'Añadir nota del día') + '</span>';
-    btnNota.addEventListener('click', () => abrirNotaModal(idx, DIAS[fecha.getDay()] + ', ' + fecha.getDate() + ' de ' + MESES[fecha.getMonth()]));
-    form.appendChild(btnNota);
+    // Nota: mostrar inline si existe, botón añadir si no
+    const notaContainer = document.createElement('div');
+    notaContainer.id = 'nota-container-' + idx;
+    renderNotaInline(notaContainer, idx, notaActual, fecha);
+    form.appendChild(notaContainer);
 
     const btnG = document.createElement('button');
     btnG.className = 'btn-guardar'; btnG.textContent = 'Guardar';
@@ -530,6 +594,13 @@ function renderDias(datos) {
       });
       form.appendChild(btnB);
     }
+
+    // Botón compartir día
+    const btnShare = document.createElement('button');
+    btnShare.className = 'btn-share-day';
+    btnShare.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Compartir este día (imagen)';
+    btnShare.addEventListener('click', () => compartirDia(idx, fecha, entrada));
+    form.appendChild(btnShare);
 
     card.appendChild(hdr); card.appendChild(form);
     cont.appendChild(card);
@@ -604,6 +675,31 @@ function renderHistorial() {
   cont.innerHTML = html || '<div class="empty"><div class="ico">📊</div><p>Sin datos aún</p></div>';
 }
 
+// ─── NOTA INLINE RENDER ───
+function renderNotaInline(container, idx, nota, fecha) {
+  container.innerHTML = '';
+  const fechaLabel = DIAS[fecha.getDay()] + ', ' + fecha.getDate() + ' de ' + MESES[fecha.getMonth()];
+
+  if (nota) {
+    // Mostrar nota con opción de editar
+    const div = document.createElement('div');
+    div.className = 'nota-inline';
+    div.innerHTML =
+      '<div class="nota-inline-label">📝 Nota</div>' +
+      '<div class="nota-inline-text">' + nota.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+      '<div class="nota-inline-edit">Toca para editar ✏️</div>';
+    div.addEventListener('click', () => abrirNotaModal(idx, fechaLabel));
+    container.appendChild(div);
+  } else {
+    // Botón añadir
+    const btn = document.createElement('button');
+    btn.className = 'btn-nota';
+    btn.innerHTML = '🖊️ <span>Añadir nota del día</span>';
+    btn.addEventListener('click', () => abrirNotaModal(idx, fechaLabel));
+    container.appendChild(btn);
+  }
+}
+
 // ─── NOTA MODAL ───
 let notaModalIdx = null;
 
@@ -632,11 +728,216 @@ function guardarNota() {
   } else if (nota) {
     datos.push({ idx, picadas:0, horas:0, horaEntrada:'', horaSalida:'', nota });
   }
-  // Remove if completely empty
-  datos = datos.filter(x => x.picadas > 0 || x.horas > 0 || x.horaEntrada || x.nota);
+  datos = datos.filter(x => x.picadas > 0 || parsear(x.horas) > 0 || x.horaEntrada || x.nota);
   setDatos(datos);
   document.getElementById('nota-modal-bg').classList.remove('open');
+  // Update inline container directly without full re-render
+  const container = document.getElementById('nota-container-' + idx);
+  if (container) {
+    const fechas = getFechas();
+    const fecha  = fechas[idx];
+    if (fecha) renderNotaInline(container, idx, nota, fecha);
+  }
+  // Also update header tag preview and dot
   renderAll();
+}
+
+// ─── COMPARTIR DÍA (JPG) ───
+async function compartirDia(idx, fecha, entrada) {
+  const pic  = entrada ? parsear(entrada.picadas) : 0;
+  const hex  = entrada ? parsear(entrada.horas)   : 0;
+  const nota = entrada && entrada.nota ? entrada.nota : '';
+  const hin  = entrada && entrada.horaEntrada ? entrada.horaEntrada : '--:--';
+  const hout = entrada && entrada.horaSalida  ? entrada.horaSalida  : '--:--';
+  const c    = getConfig();
+  const gananciaPicadas = pic * c.picada;
+  const gananciaHoras   = hex * c.extra;
+
+  const div = document.getElementById('canvas-dia');
+  div.innerHTML = `
+    <div style="font-family:-apple-system,sans-serif;color:#e2e8f0;background:#0f1117;padding:28px;border-radius:20px;width:342px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">MIS HORAS</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:2px;">${DIAS[fecha.getDay()]}</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:20px;">${fecha.getDate()} de ${MESES[fecha.getMonth()]} ${fecha.getFullYear()}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">ENTRADA</div>
+          <div style="font-size:18px;font-weight:800;">${hin}</div>
+        </div>
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">SALIDA</div>
+          <div style="font-size:18px;font-weight:800;">${hout}</div>
+        </div>
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">PICADAS</div>
+          <div style="font-size:22px;font-weight:800;color:#f97316;">${pic.toLocaleString('es')}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaPicadas)}</div>
+        </div>
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">HORAS EXTRA</div>
+          <div style="font-size:22px;font-weight:800;color:#6c63ff;">${hex} h</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaHoras)}</div>
+        </div>
+      </div>
+      ${nota ? `<div style="background:#1a1d27;border-radius:12px;padding:12px;margin-bottom:16px;border-left:3px solid #4ade80;"><div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4ade80;margin-bottom:4px;">📝 NOTA</div><div style="font-size:13px;line-height:1.5;">${nota}</div></div>` : ''}
+      <div style="font-size:10px;color:#2a2f45;text-align:center;margin-top:8px;">Generado con Mis Horas</div>
+    </div>`;
+
+  try {
+    div.style.left = '-9999px';
+    div.style.position = 'fixed';
+    const canvas = await html2canvas(div.firstElementChild, { backgroundColor: '#0f1117', scale: 2 });
+    const blob   = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+    const file   = new File([blob], 'dia-' + fmtDate(fecha) + '.jpg', { type: 'image/jpeg' });
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Mi día - ' + fecha.getDate() + ' ' + MESES[fecha.getMonth()] });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = file.name; a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch(e) { alert('No se pudo generar la imagen: ' + e.message); }
+}
+
+// ─── PDF MES ───
+let pdfOpcion = 'completo';
+
+function abrirPdfModal() { document.getElementById('pdf-modal-bg').classList.add('open'); }
+function cerrarPdfModal(e) {
+  if (!e || e.target === document.getElementById('pdf-modal-bg'))
+    document.getElementById('pdf-modal-bg').classList.remove('open');
+}
+function selPdfOpt(op) {
+  pdfOpcion = op;
+  document.querySelectorAll('.pdf-opt').forEach(el => el.classList.remove('sel'));
+  document.getElementById('opt-' + op).classList.add('sel');
+}
+
+async function generarPDF() {
+  document.getElementById('pdf-modal-bg').classList.remove('open');
+  const { jsPDF } = window.jspdf;
+  const doc  = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const datos = getDatos();
+  const r     = calcular(datos);
+  const c     = getConfig();
+  const [y,m] = mesActual.split('-').map(Number);
+  const fechas = getFechas();
+  const completo = pdfOpcion === 'completo';
+
+  // Colores
+  const BG   = [15, 17, 23];
+  const CARD = [26, 29, 39];
+  const ACC  = [108, 99, 255];
+  const GRN  = [74, 222, 128];
+  const ORG  = [249, 115, 22];
+  const TEXT = [226, 232, 240];
+  const MUT  = [100, 116, 139];
+
+  doc.setFillColor(...BG);
+  doc.rect(0, 0, 210, 297, 'F');
+
+  let y2 = 14;
+
+  // Título
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20); doc.setTextColor(...TEXT);
+  doc.text('MIS HORAS', 14, y2);
+  doc.setFontSize(11); doc.setTextColor(...MUT);
+  doc.text(MESES[m-1] + ' ' + y, 14, y2+7);
+  doc.setFontSize(9);
+  doc.text(completo ? 'Informe completo' : 'Solo actividad', 14, y2+13);
+  y2 += 22;
+
+  // Línea
+  doc.setDrawColor(...ACC); doc.setLineWidth(0.5);
+  doc.line(14, y2, 196, y2); y2 += 8;
+
+  // Resumen
+  const cols = completo ? [
+    { label:'PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
+    { label:'BRUTO', val: fmt(r.totalTonto), sub:'', color: TEXT },
+    { label:'NETO A COBRAR', val: fmt(r.neto), sub:'RDE+SS: '+fmt(r.deducciones), color: GRN },
+  ] : [
+    { label:'TOTAL PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
+    { label:'DÍAS TRABAJADOS', val: datos.filter(d=>parsear(d.picadas)>0||parsear(d.horas)>0).length+'', sub:'', color: GRN },
+  ];
+
+  const cw = completo ? 43.5 : 58;
+  cols.forEach((col, i) => {
+    const x = 14 + i * (cw + 3);
+    doc.setFillColor(...CARD);
+    doc.roundedRect(x, y2, cw, 22, 2, 2, 'F');
+    doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+    doc.text(col.label, x+3, y2+6);
+    doc.setFontSize(11); doc.setTextColor(...col.color);
+    doc.text(col.val, x+3, y2+14);
+    if (col.sub) { doc.setFontSize(7); doc.setTextColor(...MUT); doc.text(col.sub, x+3, y2+20); }
+  });
+  y2 += 30;
+
+  // Tabla días
+  doc.setFontSize(8); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+  doc.text('DÍA', 14, y2); doc.text('FECHA', 28, y2);
+  doc.text('ENTRADA', 72, y2); doc.text('SALIDA', 95, y2);
+  doc.text('PICADAS', 118, y2); doc.text('H.EXTRA', 145, y2);
+  if (completo) doc.text('GANANCIA', 168, y2);
+  doc.text('NOTA', completo ? 195 : 172, y2);
+  y2 += 4;
+  doc.setDrawColor(...CARD); doc.setLineWidth(0.3);
+  doc.line(14, y2, 196, y2); y2 += 4;
+
+  fechas.forEach((fecha, idx) => {
+    const entrada = datos.find(x => x.idx === idx) || null;
+    const pic  = entrada ? parsear(entrada.picadas) : 0;
+    const hex  = entrada ? parsear(entrada.horas)   : 0;
+    const nota = entrada && entrada.nota ? entrada.nota : '';
+    const gan  = pic * c.picada + hex * c.extra;
+
+    if (y2 > 270) { doc.addPage(); doc.setFillColor(...BG); doc.rect(0,0,210,297,'F'); y2 = 14; }
+
+    if (pic > 0 || hex > 0 || nota) {
+      doc.setFillColor(...CARD);
+      doc.rect(14, y2-3, 182, 7, 'F');
+    }
+
+    doc.setFont('helvetica', pic > 0 || hex > 0 ? 'bold' : 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...(pic > 0 || hex > 0 ? TEXT : MUT));
+    doc.text(DIAS[fecha.getDay()].slice(0,3), 14, y2+2);
+    doc.text(fecha.getDate()+'/'+String(fecha.getMonth()+1).padStart(2,'0'), 28, y2+2);
+    doc.text(entrada?.horaEntrada || '-', 72, y2+2);
+    doc.text(entrada?.horaSalida  || '-', 95, y2+2);
+    if (pic > 0) { doc.setTextColor(...ORG); doc.text(pic.toLocaleString('es'), 118, y2+2); }
+    if (hex > 0) { doc.setTextColor(...ACC); doc.text(hex+'h', 145, y2+2); }
+    if (completo && gan > 0) { doc.setTextColor(...GRN); doc.text(fmt(gan), 168, y2+2); }
+    if (nota) {
+      doc.setTextColor(...MUT); doc.setFontSize(7);
+      doc.text(nota.length > 20 ? nota.slice(0,20)+'…' : nota, completo ? 195 : 172, y2+2);
+    }
+
+    y2 += 7;
+    doc.setDrawColor(26,29,39); doc.setLineWidth(0.2);
+    doc.line(14, y2-1, 196, y2-1);
+  });
+
+  // Footer
+  doc.setFontSize(7); doc.setTextColor(...MUT);
+  doc.text('Generado con Mis Horas · ' + new Date().toLocaleDateString('es'), 14, 290);
+
+  // Guardar/compartir
+  const pdfBlob = doc.output('blob');
+  const file = new File([pdfBlob], 'MisHoras-' + MESES[m-1] + y + '.pdf', { type:'application/pdf' });
+  if (navigator.share && navigator.canShare({ files:[file] })) {
+    await navigator.share({ files:[file], title:'Mis Horas - ' + MESES[m-1] + ' ' + y });
+  } else {
+    const url = URL.createObjectURL(pdfBlob);
+    const a   = document.createElement('a');
+    a.href = url; a.download = file.name; a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 // ─── INIT ───
