@@ -183,6 +183,19 @@
   .nota-inline-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
   .nota-inline-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
   .nota-inline-edit{font-size:10px;color:var(--muted);margin-top:6px;text-align:right;}
+  /* USUARIO FIELD */
+  .ff-usuario{position:relative;grid-column:1/-1;margin-top:2px;}
+  .ff-usuario label{display:block;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .ff-usuario input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px 10px 36px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
+  .ff-usuario input:focus{border-color:var(--accent);}
+  .ff-usuario .user-icon{position:absolute;left:11px;top:50%;transform:translateY(4px);color:var(--muted);pointer-events:none;}
+  .usuario-sugs{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:12px;z-index:50;overflow:hidden;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+  .usuario-sugs.open{display:block;}
+  .usuario-sug-item{padding:11px 14px;cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .usuario-sug-item:last-child{border-bottom:none;}
+  .usuario-sug-item:active{background:rgba(108,99,255,0.1);}
+  .usuario-sug-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;}
+  .tag-usuario{background:rgba(108,99,255,0.15);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -509,6 +522,7 @@ function renderDias(datos) {
         '<div class="day-date">' + fecha.getDate() + ' de ' + MESES[fecha.getMonth()] + ' ' + fecha.getFullYear() + '</div>' +
       '</div>' +
       '<div class="day-tags">' +
+        (entrada && entrada.usuario ? '<span class="tag-usuario">👤 ' + entrada.usuario + '</span>' : '') +
         (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + ' pic.</span>' : '') +
         (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
         (entrada && entrada.nota ? '<span class="nota-preview">📝 ' + entrada.nota + '</span>' : '') +
@@ -543,6 +557,23 @@ function renderDias(datos) {
     const { ff: ffPic,  inp: inPic   } = mkInput('Picadas',      'number', 'pic-'  + idx, pic > 0 ? pic : '', 'numeric');
     const { ff: ffHex,  inp: inHex   } = mkInput('Horas extra',  'number', 'hex-'  + idx, hex > 0 ? hex : '', 'decimal', '0.5');
 
+    // Campo usuario con autocomplete
+    const ffUsuario = document.createElement('div');
+    ffUsuario.className = 'ff-usuario';
+    ffUsuario.innerHTML = '<label>👤 Usuario</label><svg class="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    const inUsuario = document.createElement('input');
+    inUsuario.type = 'text'; inUsuario.id = 'usu-' + idx;
+    inUsuario.placeholder = 'Nombre del usuario...';
+    inUsuario.value = entrada && entrada.usuario ? entrada.usuario : '';
+    inUsuario.autocomplete = 'off';
+    const usuSugs = document.createElement('div');
+    usuSugs.className = 'usuario-sugs';
+    inUsuario.addEventListener('input', () => mostrarSugsUsuario(inUsuario, usuSugs));
+    inUsuario.addEventListener('focus', () => mostrarSugsUsuario(inUsuario, usuSugs));
+    inUsuario.addEventListener('blur', () => setTimeout(() => usuSugs.classList.remove('open'), 200));
+    ffUsuario.appendChild(inUsuario);
+    ffUsuario.appendChild(usuSugs);
+
     // Auto-calcular horas al poner entrada/salida
     function autoCalc() {
       const v1 = inHin.value, v2 = inHout.value;
@@ -560,6 +591,7 @@ function renderDias(datos) {
 
     grid.appendChild(ffHin); grid.appendChild(ffHout);
     grid.appendChild(ffPic); grid.appendChild(ffHex);
+    grid.appendChild(ffUsuario);
     form.appendChild(grid);
 
     // Nota: mostrar inline si existe, botón añadir si no
@@ -575,9 +607,10 @@ function renderDias(datos) {
       const p = parsear(inPic.value);
       const h = parsear(inHex.value);
       const nota = notaActual;
+      const usuario = inUsuario.value.trim();
       datos = datos.filter(x => x.idx !== idx);
-      if (p > 0 || h > 0 || inHin.value || inHout.value || nota)
-        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota });
+      if (p > 0 || h > 0 || inHin.value || inHout.value || nota || usuario)
+        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -758,7 +791,8 @@ async function compartirDia(idx, fecha, entrada) {
     <div style="font-family:-apple-system,sans-serif;color:#e2e8f0;background:#0f1117;padding:28px;border-radius:20px;width:342px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">MIS HORAS</div>
       <div style="font-size:20px;font-weight:800;margin-bottom:2px;">${DIAS[fecha.getDay()]}</div>
-      <div style="font-size:13px;color:#94a3b8;margin-bottom:20px;">${fecha.getDate()} de ${MESES[fecha.getMonth()]} ${fecha.getFullYear()}</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:${entrada && entrada.usuario ? '4px' : '20px'};">${fecha.getDate()} de ${MESES[fecha.getMonth()]} ${fecha.getFullYear()}</div>
+      ${entrada && entrada.usuario ? `<div style="display:inline-block;background:rgba(108,99,255,0.2);color:#a89fff;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;margin-bottom:16px;">👤 ${entrada.usuario}</div>` : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
         <div style="background:#1a1d27;border-radius:12px;padding:12px;">
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">ENTRADA</div>
@@ -938,6 +972,38 @@ async function generarPDF() {
     a.href = url; a.download = file.name; a.click();
     URL.revokeObjectURL(url);
   }
+}
+
+// ─── USUARIO AUTOCOMPLETE ───
+function getTodosUsuarios() {
+  const usuarios = new Set();
+  // Buscar en todos los meses guardados
+  for (let key in localStorage) {
+    if (key.startsWith('th_datos_')) {
+      const datos = JSON.parse(localStorage.getItem(key) || '[]');
+      datos.forEach(d => { if (d.usuario && d.usuario.trim()) usuarios.add(d.usuario.trim()); });
+    }
+  }
+  return Array.from(usuarios).sort();
+}
+
+function mostrarSugsUsuario(input, panel) {
+  const query = input.value.trim().toLowerCase();
+  const todos = getTodosUsuarios();
+  const filtrados = query
+    ? todos.filter(u => u.toLowerCase().includes(query) && u.toLowerCase() !== query)
+    : todos;
+  panel.innerHTML = '';
+  if (!filtrados.length) { panel.classList.remove('open'); return; }
+  filtrados.slice(0, 6).forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'usuario-sug-item';
+    const inicial = u.charAt(0).toUpperCase();
+    item.innerHTML = '<div class="usuario-sug-avatar">' + inicial + '</div><span>' + u + '</span>';
+    item.addEventListener('mousedown', () => { input.value = u; panel.classList.remove('open'); });
+    panel.appendChild(item);
+  });
+  panel.classList.add('open');
 }
 
 // ─── INIT ───
