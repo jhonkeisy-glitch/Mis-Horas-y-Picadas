@@ -912,47 +912,115 @@ async function generarPDF() {
   });
   y2 += 30;
 
-  // Tabla días
-  doc.setFontSize(8); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
-  doc.text('DÍA', 14, y2); doc.text('FECHA', 28, y2);
-  doc.text('ENTRADA', 72, y2); doc.text('SALIDA', 95, y2);
-  doc.text('PICADAS', 118, y2); doc.text('H.EXTRA', 145, y2);
-  if (completo) doc.text('GANANCIA', 168, y2);
-  doc.text('NOTA', completo ? 195 : 172, y2);
+  // ── Columnas dinámicas según modo ──
+  // Completo:    DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | GANANCIA | USUARIO | NOTA
+  // Solo activ.: DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | USUARIO  | NOTA
+
+  // Orden: DÍA | FECHA | USUARIO | ENTRADA | SALIDA | PICADAS | H.EXT | GANANCIA | NOTA
+  const COL = {
+    dia:      14,
+    fecha:    26,
+    usuario:  44,
+    entrada:  82,
+    salida:   101,
+    picadas:  120,
+    hextra:   140,
+    ganancia: completo ? 156 : null,
+    nota:     completo ? 172 : 156,
+  };
+
+  // Cabecera tabla
+  doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+  doc.text('DÍA',      COL.dia,      y2);
+  doc.text('FECHA',    COL.fecha,    y2);
+  doc.text('USUARIO',  COL.usuario,  y2);
+  doc.text('ENTRADA',  COL.entrada,  y2);
+  doc.text('SALIDA',   COL.salida,   y2);
+  doc.text('PICADAS',  COL.picadas,  y2);
+  doc.text('H.EXT',    COL.hextra,   y2);
+  if (completo) doc.text('GANANCIA', COL.ganancia, y2);
+  doc.text('NOTA',     COL.nota,     y2);
   y2 += 4;
-  doc.setDrawColor(...CARD); doc.setLineWidth(0.3);
+  doc.setDrawColor(...ACC); doc.setLineWidth(0.3);
   doc.line(14, y2, 196, y2); y2 += 4;
 
   fechas.forEach((fecha, idx) => {
-    const entrada = datos.find(x => x.idx === idx) || null;
-    const pic  = entrada ? parsear(entrada.picadas) : 0;
-    const hex  = entrada ? parsear(entrada.horas)   : 0;
-    const nota = entrada && entrada.nota ? entrada.nota : '';
-    const gan  = pic * c.picada + hex * c.extra;
+    const entrada  = datos.find(x => x.idx === idx) || null;
+    const pic      = entrada ? parsear(entrada.picadas) : 0;
+    const hex      = entrada ? parsear(entrada.horas)   : 0;
+    const nota     = entrada && entrada.nota    ? entrada.nota    : '';
+    const usuario  = entrada && entrada.usuario ? entrada.usuario : '';
+    const gan      = pic * c.picada + hex * c.extra;
+    const tieneAlgo = pic > 0 || hex > 0 || nota || usuario;
 
-    if (y2 > 270) { doc.addPage(); doc.setFillColor(...BG); doc.rect(0,0,210,297,'F'); y2 = 14; }
+    if (y2 > 272) {
+      doc.addPage();
+      doc.setFillColor(...BG); doc.rect(0,0,210,297,'F');
+      y2 = 14;
+      // Repetir cabecera
+      doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+      doc.text('DÍA', COL.dia, y2); doc.text('FECHA', COL.fecha, y2);
+      doc.text('USUARIO', COL.usuario, y2); doc.text('ENTRADA', COL.entrada, y2);
+      doc.text('SALIDA', COL.salida, y2); doc.text('PICADAS', COL.picadas, y2);
+      doc.text('H.EXT', COL.hextra, y2);
+      if (completo) doc.text('GANANCIA', COL.ganancia, y2);
+      doc.text('NOTA', COL.nota, y2);
+      y2 += 4; doc.setDrawColor(...ACC); doc.line(14, y2, 196, y2); y2 += 4;
+    }
 
-    if (pic > 0 || hex > 0 || nota) {
+    // Fondo fila si tiene datos
+    if (tieneAlgo) {
       doc.setFillColor(...CARD);
-      doc.rect(14, y2-3, 182, 7, 'F');
+      doc.rect(14, y2-3, 182, 8, 'F');
     }
 
-    doc.setFont('helvetica', pic > 0 || hex > 0 ? 'bold' : 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...(pic > 0 || hex > 0 ? TEXT : MUT));
-    doc.text(DIAS[fecha.getDay()].slice(0,3), 14, y2+2);
-    doc.text(fecha.getDate()+'/'+String(fecha.getMonth()+1).padStart(2,'0'), 28, y2+2);
-    doc.text(entrada?.horaEntrada || '-', 72, y2+2);
-    doc.text(entrada?.horaSalida  || '-', 95, y2+2);
-    if (pic > 0) { doc.setTextColor(...ORG); doc.text(pic.toLocaleString('es'), 118, y2+2); }
-    if (hex > 0) { doc.setTextColor(...ACC); doc.text(hex+'h', 145, y2+2); }
-    if (completo && gan > 0) { doc.setTextColor(...GRN); doc.text(fmt(gan), 168, y2+2); }
+    const rowColor = tieneAlgo ? TEXT : MUT;
+    doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...rowColor);
+
+    // DÍA y FECHA
+    doc.setTextColor(...rowColor); doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
+    doc.text(DIAS[fecha.getDay()].slice(0,3), COL.dia, y2+2);
+    doc.text(fecha.getDate()+'/'+String(fecha.getMonth()+1).padStart(2,'0'), COL.fecha, y2+2);
+
+    // USUARIO (3ª columna, destacado en morado)
+    if (usuario) {
+      doc.setTextColor(...ACC); doc.setFont('helvetica','bold');
+      const uShort = usuario.length > 12 ? usuario.slice(0,12)+'…' : usuario;
+      doc.text(uShort, COL.usuario, y2+2);
+    } else {
+      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
+      doc.text('-', COL.usuario, y2+2);
+    }
+
+    // ENTRADA y SALIDA
+    doc.setTextColor(...rowColor); doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
+    doc.text(entrada?.horaEntrada || '-', COL.entrada, y2+2);
+    doc.text(entrada?.horaSalida  || '-', COL.salida,  y2+2);
+
+    // PICADAS
+    if (pic > 0) { doc.setTextColor(...ORG); doc.setFont('helvetica','bold'); doc.text(pic.toLocaleString('es'), COL.picadas, y2+2); }
+    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.picadas, y2+2); }
+
+    // H.EXTRA
+    if (hex > 0) { doc.setTextColor(...ACC); doc.setFont('helvetica','bold'); doc.text(hex+'h', COL.hextra, y2+2); }
+    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.hextra, y2+2); }
+
+    // GANANCIA
+    if (completo) {
+      if (gan > 0) { doc.setTextColor(...GRN); doc.setFont('helvetica','bold'); doc.text(fmt(gan), COL.ganancia, y2+2); }
+      else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.ganancia, y2+2); }
+    }
+
+    // NOTA
     if (nota) {
-      doc.setTextColor(...MUT); doc.setFontSize(7);
-      doc.text(nota.length > 20 ? nota.slice(0,20)+'…' : nota, completo ? 195 : 172, y2+2);
+      doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+      const nShort = nota.length > 16 ? nota.slice(0,16)+'…' : nota;
+      doc.text(nShort, COL.nota, y2+2);
     }
 
-    y2 += 7;
+    y2 += 8;
     doc.setDrawColor(26,29,39); doc.setLineWidth(0.2);
     doc.line(14, y2-1, 196, y2-1);
   });
