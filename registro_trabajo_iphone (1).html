@@ -668,7 +668,7 @@ function renderDias(datos) {
       '<div class="toggle-track' + (descuentoActivo ? ' on' : '') + '" id="track-' + idx + '"><div class="toggle-thumb"></div></div>' +
       '<div class="toggle-desc-info">' +
         '<div class="toggle-desc-title">Descontar fijo del día</div>' +
-        '<div class="toggle-desc-sub" id="toggle-sub-' + idx + '">' + (descuentoActivo ? 'Activado — se calculan las extras' : 'Desactivado — no se calculan extras') + '</div>' +
+        '<div class="toggle-desc-sub" id="toggle-sub-' + idx + '">' + (descuentoActivo ? '' : '') + '</div>' +
       '</div>' +
       '<span style="font-size:13px;font-weight:800;color:var(--accent3);display:' + (descuentoActivo ? 'block' : 'none') + '" id="toggle-base-lbl-' + idx + '">−' + getPicBase(idx).toLocaleString('es') + '</span>';
 
@@ -679,7 +679,7 @@ function renderDias(datos) {
       const track = document.getElementById('track-' + idx);
       if (track) track.classList.toggle('on', descuentoActivo);
       const sub = document.getElementById('toggle-sub-' + idx);
-      if (sub) sub.textContent = descuentoActivo ? 'Activado — se calculan las extras' : 'Desactivado — no se calculan extras';
+      if (sub) sub.textContent = descuentoActivo ? '' : '';
       const baseLbl = document.getElementById('toggle-base-lbl-' + idx);
       if (baseLbl) baseLbl.style.display = descuentoActivo ? 'block' : 'none';
       actualizarExtrasBox();
