@@ -1088,13 +1088,13 @@ async function generarPDF() {
     dia:      14,
     fecha:    24,
     usuario:  40,
-    entrada:  76,
-    salida:   93,
-    picadas:  110,
-    extras:   125,
-    hextra:   139,
-    ganancia: completo ? 153 : null,
-    nota:     completo ? 168 : 153,
+    entrada:  95,
+    salida:   110,
+    picadas:  124,
+    extras:   137,
+    hextra:   150,
+    ganancia: completo ? 162 : null,
+    nota:     completo ? 176 : 162,
   };
 
   // Cabecera tabla
@@ -1156,7 +1156,7 @@ async function generarPDF() {
     // USUARIO (3ª columna, destacado en morado)
     if (usuario) {
       doc.setTextColor(...ACC); doc.setFont('helvetica','bold');
-      const uShort = usuario.length > 12 ? usuario.slice(0,12)+'…' : usuario;
+      const uShort = usuario.length > 20 ? usuario.slice(0,20)+'…' : usuario;
       doc.text(uShort, COL.usuario, y2+2);
     } else {
       doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
