@@ -196,6 +196,32 @@
   .usuario-sug-item:active{background:rgba(108,99,255,0.1);}
   .usuario-sug-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;}
   .tag-usuario{background:rgba(108,99,255,0.15);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+  /* EXTRAS PICADAS */
+  .pic-base-row{display:flex;align-items:center;gap:8px;margin-top:10px;background:rgba(249,115,22,0.07);border:1.5px solid rgba(249,115,22,0.2);border-radius:12px;padding:10px 14px;}
+  .pic-base-label{font-size:11px;font-weight:700;color:var(--muted2);flex:1;}
+  .pic-base-val{font-size:15px;font-weight:800;color:var(--accent3);}
+  .pic-base-edit{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex;align-items:center;}
+  .pic-base-edit:active{color:var(--accent3);}
+  .pic-base-input{width:80px;background:var(--bg);border:1.5px solid var(--accent3);border-radius:8px;color:var(--text);font-size:15px;font-weight:800;font-family:-apple-system,sans-serif;padding:4px 8px;text-align:center;outline:none;display:none;}
+  .extras-box{margin-top:8px;background:rgba(74,222,128,0.07);border:1.5px solid rgba(74,222,128,0.2);border-radius:12px;padding:10px 14px;display:none;}
+  .extras-box.visible{display:block;}
+  .extras-row{display:flex;justify-content:space-between;align-items:center;}
+  .extras-label{font-size:11px;font-weight:700;color:var(--muted2);}
+  .extras-val{font-size:18px;font-weight:800;color:var(--accent2);}
+  .extras-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+  .tag-extras{background:rgba(74,222,128,0.15);color:var(--accent2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+  /* TOGGLE DESCUENTO */
+  .toggle-descuento{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s;user-select:none;-webkit-user-select:none;}
+  .toggle-descuento.activo{background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.4);}
+  .toggle-descuento:active{opacity:0.7;}
+  .toggle-track{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;flex-shrink:0;transition:background 0.2s;}
+  .toggle-track.on{background:var(--accent3);}
+  .toggle-thumb{width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+  .toggle-track.on .toggle-thumb{left:21px;}
+  .toggle-desc-info{flex:1;}
+  .toggle-desc-title{font-size:13px;font-weight:700;color:var(--muted2);}
+  .toggle-descuento.activo .toggle-desc-title{color:var(--accent3);}
+  .toggle-desc-sub{font-size:10px;color:var(--muted);margin-top:1px;}
 </style>
 </head>
 <body>
@@ -341,9 +367,16 @@ const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sába
 let mesActual = '';
 
 // ─── KEYS POR MES ───
-const kDatos  = () => 'th_datos_'  + mesActual;
-const kInicio = () => 'th_inicio_' + mesActual;
-const kDias   = () => 'th_dias_'   + mesActual;
+const kDatos   = () => 'th_datos_'    + mesActual;
+const kInicio  = () => 'th_inicio_'  + mesActual;
+const kDias    = () => 'th_dias_'    + mesActual;
+const kPicBase = (idx) => 'th_picbase_' + mesActual + '_' + idx;
+
+function getPicBase(idx) { return parseInt(localStorage.getItem(kPicBase(idx)) || '1600'); }
+function setPicBase(idx, val) { localStorage.setItem(kPicBase(idx), val); }
+const kDescuento = (idx) => 'th_desc_' + mesActual + '_' + idx;
+function getDescuento(idx) { return localStorage.getItem(kDescuento(idx)) === 'on'; }
+function setDescuento(idx, val) { localStorage.setItem(kDescuento(idx), val ? 'on' : 'off'); }
 
 // ─── DATOS ───
 function getDatos()    { return JSON.parse(localStorage.getItem(kDatos())  || '[]'); }
@@ -470,7 +503,22 @@ function calcular(datos) {
   const c = getConfig();
   let totalPicadas = 0, totalHoras = 0;
   datos.forEach(d => { totalPicadas += parsear(d.picadas); totalHoras += parsear(d.horas); });
-  const totalPicada  = totalPicadas * c.picada;
+  // El dinero se calcula sobre las extras, no el total
+  let totalExtrasCalc = 0;
+  datos.forEach(function(d) {
+    const pic = parsear(d.picadas);
+    if (pic <= 0) return;
+    let descActivo = false;
+    let base = 1600;
+    for (let k in localStorage) {
+      if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + d.idx))
+        descActivo = localStorage.getItem(k) === 'on';
+      if (k.indexOf('th_picbase_') === 0 && k.endsWith('_' + d.idx))
+        base = parseInt(localStorage.getItem(k)) || 1600;
+    }
+    totalExtrasCalc += descActivo ? Math.max(0, pic - base) : pic;
+  });
+  const totalPicada  = totalExtrasCalc * c.picada;
   const totalExtras  = totalHoras   * c.extra;
   const totalTonto   = totalPicada  + c.base + totalExtras;
   const rde          = totalTonto * (c.rde       / 100);
@@ -484,8 +532,23 @@ function calcular(datos) {
 function renderResumen(datos) {
   const r = calcular(datos);
   const c = getConfig();
+  // Extras: si toggle activo = picadas - fijo; si no = todas las picadas son extras
+  let totalExtrasPickup = 0;
+  datos.forEach(function(d) {
+    const pic = parsear(d.picadas);
+    if (pic <= 0) return;
+    let descActivo = false;
+    let base = 1600;
+    for (let k in localStorage) {
+      if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + d.idx))
+        descActivo = localStorage.getItem(k) === 'on';
+      if (k.indexOf('th_picbase_') === 0 && k.endsWith('_' + d.idx))
+        base = parseInt(localStorage.getItem(k)) || 1600;
+    }
+    totalExtrasPickup += descActivo ? Math.max(0, pic - base) : pic;
+  });
   document.getElementById('resumen-grid').innerHTML =
-    '<div class="r-card"><div class="r-label">Picadas</div><div class="r-val c-orange">' + r.totalPicadas.toLocaleString('es') + '</div><div class="r-sub">' + fmt(r.totalPicada) + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Picadas extra</div><div class="r-val c-green">' + totalExtrasPickup.toLocaleString('es') + '</div><div class="r-sub">Total: ' + r.totalPicadas.toLocaleString('es') + ' · ' + fmt(r.totalPicada) + '</div></div>' +
     '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + fmt(r.totalExtras) + '</div></div>' +
     '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.totalTonto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
     '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + datos.filter(d => parsear(d.picadas) > 0 || parsear(d.horas) > 0).length + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
@@ -524,6 +587,7 @@ function renderDias(datos) {
       '<div class="day-tags">' +
         (entrada && entrada.usuario ? '<span class="tag-usuario">👤 ' + entrada.usuario + '</span>' : '') +
         (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + ' pic.</span>' : '') +
+        (() => { if (!getDescuento(idx)) return ''; const base = getPicBase(idx); const ext = pic - base; return ext > 0 ? '<span class="tag-extras">+' + ext.toLocaleString('es') + ' ext.</span>' : ''; })() +
         (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
         (entrada && entrada.nota ? '<span class="nota-preview">📝 ' + entrada.nota + '</span>' : '') +
       '</div>' +
@@ -594,6 +658,106 @@ function renderDias(datos) {
     grid.appendChild(ffUsuario);
     form.appendChild(grid);
 
+    // ── PICADAS BASE + EXTRAS ──
+    // ── TOGGLE DESCUENTO ──
+    let descuentoActivo = getDescuento(idx);
+
+    const toggleDesc = document.createElement('div');
+    toggleDesc.className = 'toggle-descuento' + (descuentoActivo ? ' activo' : '');
+    toggleDesc.innerHTML =
+      '<div class="toggle-track' + (descuentoActivo ? ' on' : '') + '" id="track-' + idx + '"><div class="toggle-thumb"></div></div>' +
+      '<div class="toggle-desc-info">' +
+        '<div class="toggle-desc-title">Descontar fijo del día</div>' +
+        '<div class="toggle-desc-sub" id="toggle-sub-' + idx + '">' + (descuentoActivo ? 'Activado — se calculan las extras' : 'Desactivado — no se calculan extras') + '</div>' +
+      '</div>' +
+      '<span style="font-size:13px;font-weight:800;color:var(--accent3);display:' + (descuentoActivo ? 'block' : 'none') + '" id="toggle-base-lbl-' + idx + '">−' + getPicBase(idx).toLocaleString('es') + '</span>';
+
+    toggleDesc.addEventListener('click', () => {
+      descuentoActivo = !descuentoActivo;
+      setDescuento(idx, descuentoActivo);
+      toggleDesc.classList.toggle('activo', descuentoActivo);
+      const track = document.getElementById('track-' + idx);
+      if (track) track.classList.toggle('on', descuentoActivo);
+      const sub = document.getElementById('toggle-sub-' + idx);
+      if (sub) sub.textContent = descuentoActivo ? 'Activado — se calculan las extras' : 'Desactivado — no se calculan extras';
+      const baseLbl = document.getElementById('toggle-base-lbl-' + idx);
+      if (baseLbl) baseLbl.style.display = descuentoActivo ? 'block' : 'none';
+      actualizarExtrasBox();
+    });
+    form.appendChild(toggleDesc);
+
+    // ── FIJO EDITABLE ──
+    const picBaseRow = document.createElement('div');
+    picBaseRow.className = 'pic-base-row';
+    picBaseRow.style.display = descuentoActivo ? 'flex' : 'none';
+    picBaseRow.id = 'base-row-' + idx;
+    const picBaseLbl = document.createElement('div');
+    picBaseLbl.className = 'pic-base-label';
+    picBaseLbl.innerHTML = '🎯 Fijo por día';
+    const picBaseVal = document.createElement('span');
+    picBaseVal.className = 'pic-base-val';
+    picBaseVal.textContent = getPicBase(idx).toLocaleString('es');
+    const picBaseInp = document.createElement('input');
+    picBaseInp.className = 'pic-base-input';
+    picBaseInp.type = 'number'; picBaseInp.inputMode = 'numeric';
+    picBaseInp.value = getPicBase(idx); picBaseInp.min = '0';
+    const picBaseEditBtn = document.createElement('button');
+    picBaseEditBtn.className = 'pic-base-edit';
+    picBaseEditBtn.title = 'Editar fijo';
+    picBaseEditBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    let editingBase = false;
+    function aplicarNuevaBase() {
+      const newBase = parseInt(picBaseInp.value) || 1600;
+      setPicBase(idx, newBase);
+      picBaseVal.textContent = newBase.toLocaleString('es');
+      const baseLbl = document.getElementById('toggle-base-lbl-' + idx);
+      if (baseLbl) baseLbl.textContent = '−' + newBase.toLocaleString('es');
+      actualizarExtrasBox();
+    }
+    picBaseEditBtn.addEventListener('click', () => {
+      editingBase = !editingBase;
+      picBaseVal.style.display = editingBase ? 'none' : '';
+      picBaseInp.style.display = editingBase ? 'inline-block' : 'none';
+      if (editingBase) { picBaseInp.focus(); picBaseInp.select(); }
+      else aplicarNuevaBase();
+    });
+    picBaseInp.addEventListener('change', aplicarNuevaBase);
+    picBaseRow.appendChild(picBaseLbl);
+    picBaseRow.appendChild(picBaseVal);
+    picBaseRow.appendChild(picBaseInp);
+    picBaseRow.appendChild(picBaseEditBtn);
+    form.appendChild(picBaseRow);
+
+    // ── CAJA EXTRAS ──
+    const extrasBox = document.createElement('div');
+    extrasBox.className = 'extras-box';
+    extrasBox.id = 'extras-box-' + idx;
+
+    function actualizarExtrasBox() {
+      const baseRow = document.getElementById('base-row-' + idx);
+      if (baseRow) baseRow.style.display = descuentoActivo ? 'flex' : 'none';
+      if (!descuentoActivo) { extrasBox.classList.remove('visible'); return; }
+      const totalPic = parsear(inPic.value);
+      const base     = getPicBase(idx);
+      const extras   = totalPic - base;
+      if (totalPic > 0) {
+        extrasBox.classList.add('visible');
+        extrasBox.innerHTML =
+          '<div class="extras-row">' +
+            '<div><div class="extras-label">Total picadas</div><div class="extras-val">' + totalPic.toLocaleString('es') + '</div></div>' +
+            '<div style="text-align:right"><div class="extras-label">Picadas extra</div>' +
+            '<div class="extras-val" style="color:' + (extras > 0 ? 'var(--accent2)' : 'var(--red)') + '">' + (extras > 0 ? '+' : '') + extras.toLocaleString('es') + '</div></div>' +
+          '</div>' +
+          '<div class="extras-sub">Fijo: ' + base.toLocaleString('es') + ' · ' + (extras > 0 ? extras.toLocaleString('es') + ' picadas extras' : 'Sin extras hoy') + '</div>';
+      } else {
+        extrasBox.classList.remove('visible');
+      }
+    }
+
+    inPic.addEventListener('input', actualizarExtrasBox);
+    actualizarExtrasBox();
+    form.appendChild(extrasBox);
+
     // Nota: mostrar inline si existe, botón añadir si no
     const notaContainer = document.createElement('div');
     notaContainer.id = 'nota-container-' + idx;
@@ -608,9 +772,11 @@ function renderDias(datos) {
       const h = parsear(inHex.value);
       const nota = notaActual;
       const usuario = inUsuario.value.trim();
+      const picBase   = getPicBase(idx);
+      const picExtras = getDescuento(idx) ? Math.max(0, p - picBase) : 0;
       datos = datos.filter(x => x.idx !== idx);
       if (p > 0 || h > 0 || inHin.value || inHout.value || nota || usuario)
-        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario });
+        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario, picBase, picExtras });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -806,6 +972,7 @@ async function compartirDia(idx, fecha, entrada) {
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">PICADAS</div>
           <div style="font-size:22px;font-weight:800;color:#f97316;">${pic.toLocaleString('es')}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaPicadas)}</div>
+          ${(() => { const base = entrada && entrada.picBase ? entrada.picBase : 1600; const ext = pic - base; return ext > 0 ? `<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:3px;">+${ext.toLocaleString('es')} extras</div>` : ''; })()}
         </div>
         <div style="background:#1a1d27;border-radius:12px;padding:12px;">
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">HORAS EXTRA</div>
@@ -916,30 +1083,32 @@ async function generarPDF() {
   // Completo:    DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | GANANCIA | USUARIO | NOTA
   // Solo activ.: DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | USUARIO  | NOTA
 
-  // Orden: DÍA | FECHA | USUARIO | ENTRADA | SALIDA | PICADAS | H.EXT | GANANCIA | NOTA
+  // Orden: DÍA | FECHA | USUARIO | ENTRADA | SALIDA | PICADAS | EXTRAS | H.EXT | GANANCIA | NOTA
   const COL = {
     dia:      14,
-    fecha:    26,
-    usuario:  44,
-    entrada:  82,
-    salida:   101,
-    picadas:  120,
-    hextra:   140,
-    ganancia: completo ? 156 : null,
-    nota:     completo ? 172 : 156,
+    fecha:    24,
+    usuario:  40,
+    entrada:  76,
+    salida:   93,
+    picadas:  110,
+    extras:   125,
+    hextra:   139,
+    ganancia: completo ? 153 : null,
+    nota:     completo ? 168 : 153,
   };
 
   // Cabecera tabla
-  doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
-  doc.text('DÍA',      COL.dia,      y2);
-  doc.text('FECHA',    COL.fecha,    y2);
-  doc.text('USUARIO',  COL.usuario,  y2);
-  doc.text('ENTRADA',  COL.entrada,  y2);
-  doc.text('SALIDA',   COL.salida,   y2);
-  doc.text('PICADAS',  COL.picadas,  y2);
-  doc.text('H.EXT',    COL.hextra,   y2);
+  doc.setFontSize(6.5); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+  doc.text('DÍA',     COL.dia,      y2);
+  doc.text('FECHA',   COL.fecha,    y2);
+  doc.text('USUARIO', COL.usuario,  y2);
+  doc.text('ENTRADA', COL.entrada,  y2);
+  doc.text('SALIDA',  COL.salida,   y2);
+  doc.text('PICADAS', COL.picadas,  y2);
+  doc.text('EXTRAS',  COL.extras,   y2);
+  doc.text('H.EXT',   COL.hextra,   y2);
   if (completo) doc.text('GANANCIA', COL.ganancia, y2);
-  doc.text('NOTA',     COL.nota,     y2);
+  doc.text('NOTA',    COL.nota,     y2);
   y2 += 4;
   doc.setDrawColor(...ACC); doc.setLineWidth(0.3);
   doc.line(14, y2, 196, y2); y2 += 4;
@@ -962,7 +1131,7 @@ async function generarPDF() {
       doc.text('DÍA', COL.dia, y2); doc.text('FECHA', COL.fecha, y2);
       doc.text('USUARIO', COL.usuario, y2); doc.text('ENTRADA', COL.entrada, y2);
       doc.text('SALIDA', COL.salida, y2); doc.text('PICADAS', COL.picadas, y2);
-      doc.text('H.EXT', COL.hextra, y2);
+      doc.text('EXTRAS', COL.extras, y2); doc.text('H.EXT', COL.hextra, y2);
       if (completo) doc.text('GANANCIA', COL.ganancia, y2);
       doc.text('NOTA', COL.nota, y2);
       y2 += 4; doc.setDrawColor(...ACC); doc.line(14, y2, 196, y2); y2 += 4;
@@ -1003,6 +1172,11 @@ async function generarPDF() {
     if (pic > 0) { doc.setTextColor(...ORG); doc.setFont('helvetica','bold'); doc.text(pic.toLocaleString('es'), COL.picadas, y2+2); }
     else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.picadas, y2+2); }
 
+    // EXTRAS PICADAS
+    const picExt = entrada && entrada.picExtras ? entrada.picExtras : Math.max(0, pic - (entrada && entrada.picBase ? entrada.picBase : 1600));
+    if (picExt > 0) { doc.setTextColor(...GRN); doc.setFont('helvetica','bold'); doc.text('+'+picExt.toLocaleString('es'), COL.extras, y2+2); }
+    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.extras, y2+2); }
+
     // H.EXTRA
     if (hex > 0) { doc.setTextColor(...ACC); doc.setFont('helvetica','bold'); doc.text(hex+'h', COL.hextra, y2+2); }
     else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.hextra, y2+2); }
@@ -1024,6 +1198,16 @@ async function generarPDF() {
     doc.setDrawColor(26,29,39); doc.setLineWidth(0.2);
     doc.line(14, y2-1, 196, y2-1);
   });
+
+  // Totales al pie
+  y2 += 4;
+  doc.setDrawColor(...ACC); doc.setLineWidth(0.4); doc.line(14, y2, 196, y2); y2 += 6;
+  const totalExtPDF = datos.reduce((s,d) => s + (parsear(d.picExtras)||0), 0);
+  doc.setFontSize(8); doc.setFont('helvetica','bold');
+  doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
+  doc.setTextColor(...GRN); doc.text('Extras: +' + totalExtPDF.toLocaleString('es'), 80, y2);
+  doc.setTextColor(...ACC); doc.text('Horas extra: ' + r.totalHoras.toFixed(1) + 'h', 130, y2);
+  if (completo) { y2 += 6; doc.setTextColor(...GRN); doc.text('Neto a cobrar: ' + fmt(r.neto), 14, y2); }
 
   // Footer
   doc.setFontSize(7); doc.setTextColor(...MUT);
