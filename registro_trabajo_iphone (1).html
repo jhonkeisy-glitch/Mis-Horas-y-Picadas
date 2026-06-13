@@ -1133,7 +1133,10 @@ async function generarPDF() {
     const hex      = entrada ? parsear(entrada.horas)   : 0;
     const nota     = entrada && entrada.nota    ? entrada.nota    : '';
     const usuario  = entrada && entrada.usuario ? entrada.usuario : '';
-    const gan      = pic * c.picada + hex * c.extra;
+    // Ganancia: usar extras no el total de picadas
+    const togActGan = entrada && entrada.toggleActivo === true;
+    const extGan    = togActGan ? Math.max(0, pic - (entrada.picBase || 1600)) : pic;
+    const gan       = extGan * c.picada + hex * c.extra;
     const tieneAlgo = pic > 0 || hex > 0 || nota || usuario;
 
     if (y2 > 272) {
