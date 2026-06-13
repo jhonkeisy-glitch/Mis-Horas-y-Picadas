@@ -772,11 +772,12 @@ function renderDias(datos) {
       const h = parsear(inHex.value);
       const nota = notaActual;
       const usuario = inUsuario.value.trim();
-      const picBase   = getPicBase(idx);
-      const picExtras = getDescuento(idx) ? Math.max(0, p - picBase) : 0;
+      const picBase      = getPicBase(idx);
+      const toggleActivo = getDescuento(idx);
+      const picExtras    = toggleActivo ? Math.max(0, p - picBase) : p; // si no toggle, todas son extras
       datos = datos.filter(x => x.idx !== idx);
       if (p > 0 || h > 0 || inHin.value || inHout.value || nota || usuario)
-        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario, picBase, picExtras });
+        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario, picBase, picExtras, toggleActivo });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -942,6 +943,19 @@ function guardarNota() {
 }
 
 // ─── COMPARTIR DÍA (JPG) ───
+function getExtrasImgHtml(entrada, pic) {
+  if (!entrada) return '';
+  let descOn = false;
+  for (var k in localStorage) {
+    if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + entrada.idx))
+      descOn = localStorage.getItem(k) === 'on';
+  }
+  if (!descOn) return '';
+  var base = entrada.picBase || 1600;
+  var ext  = pic - base;
+  return ext > 0 ? '<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:3px;">+' + ext.toLocaleString('es') + ' extras</div>' : '';
+}
+
 async function compartirDia(idx, fecha, entrada) {
   const pic  = entrada ? parsear(entrada.picadas) : 0;
   const hex  = entrada ? parsear(entrada.horas)   : 0;
@@ -972,7 +986,7 @@ async function compartirDia(idx, fecha, entrada) {
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">PICADAS</div>
           <div style="font-size:22px;font-weight:800;color:#f97316;">${pic.toLocaleString('es')}</div>
           <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaPicadas)}</div>
-          ${(() => { const base = entrada && entrada.picBase ? entrada.picBase : 1600; const ext = pic - base; return ext > 0 ? `<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:3px;">+${ext.toLocaleString('es')} extras</div>` : ''; })()}
+          ${getExtrasImgHtml(entrada, pic)}
         </div>
         <div style="background:#1a1d27;border-radius:12px;padding:12px;">
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">HORAS EXTRA</div>
@@ -1168,14 +1182,25 @@ async function generarPDF() {
     doc.text(entrada?.horaEntrada || '-', COL.entrada, y2+2);
     doc.text(entrada?.horaSalida  || '-', COL.salida,  y2+2);
 
-    // PICADAS
-    if (pic > 0) { doc.setTextColor(...ORG); doc.setFont('helvetica','bold'); doc.text(pic.toLocaleString('es'), COL.picadas, y2+2); }
-    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.picadas, y2+2); }
+    // PICADAS — siempre muestra el total
+    if (pic > 0) {
+      doc.setTextColor(...ORG); doc.setFont('helvetica','bold');
+      doc.text(pic.toLocaleString('es'), COL.picadas, y2+2);
+    } else {
+      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
+      doc.text('-', COL.picadas, y2+2);
+    }
 
-    // EXTRAS PICADAS
-    const picExt = entrada && entrada.picExtras ? entrada.picExtras : Math.max(0, pic - (entrada && entrada.picBase ? entrada.picBase : 1600));
-    if (picExt > 0) { doc.setTextColor(...GRN); doc.setFont('helvetica','bold'); doc.text('+'+picExt.toLocaleString('es'), COL.extras, y2+2); }
-    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.extras, y2+2); }
+    // EXTRAS — sin toggle: todas las picadas; con toggle: solo excedente del fijo
+    if (pic > 0) {
+      const togAct = entrada && entrada.toggleActivo === true;
+      const extVal = togAct ? Math.max(0, pic - (entrada.picBase || 1600)) : pic;
+      doc.setTextColor(...GRN); doc.setFont('helvetica','bold');
+      doc.text(extVal.toLocaleString('es'), COL.extras, y2+2);
+    } else {
+      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
+      doc.text('-', COL.extras, y2+2);
+    }
 
     // H.EXTRA
     if (hex > 0) { doc.setTextColor(...ACC); doc.setFont('helvetica','bold'); doc.text(hex+'h', COL.hextra, y2+2); }
@@ -1202,7 +1227,14 @@ async function generarPDF() {
   // Totales al pie
   y2 += 4;
   doc.setDrawColor(...ACC); doc.setLineWidth(0.4); doc.line(14, y2, 196, y2); y2 += 6;
-  const totalExtPDF = datos.reduce((s,d) => s + (parsear(d.picExtras)||0), 0);
+  // Extras PDF: sin toggle = todas las picadas; con toggle = excedente del fijo
+  const totalExtPDF = datos.reduce((s, d) => {
+    const pic = parsear(d.picadas);
+    if (pic <= 0) return s;
+    const togAct = d.toggleActivo === true;
+    const ext = togAct ? Math.max(0, pic - (d.picBase || 1600)) : pic;
+    return s + ext;
+  }, 0);
   doc.setFontSize(8); doc.setFont('helvetica','bold');
   doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
   doc.setTextColor(...GRN); doc.text('Extras: +' + totalExtPDF.toLocaleString('es'), 80, y2);
