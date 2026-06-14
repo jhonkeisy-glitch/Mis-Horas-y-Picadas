@@ -503,20 +503,14 @@ function calcular(datos) {
   const c = getConfig();
   let totalPicadas = 0, totalHoras = 0;
   datos.forEach(d => { totalPicadas += parsear(d.picadas); totalHoras += parsear(d.horas); });
-  // El dinero se calcula sobre las extras, no el total
+  // El dinero se calcula sobre las extras (toggleActivo guardado en el dato)
   let totalExtrasCalc = 0;
   datos.forEach(function(d) {
     const pic = parsear(d.picadas);
     if (pic <= 0) return;
-    let descActivo = false;
-    let base = 1600;
-    for (let k in localStorage) {
-      if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + d.idx))
-        descActivo = localStorage.getItem(k) === 'on';
-      if (k.indexOf('th_picbase_') === 0 && k.endsWith('_' + d.idx))
-        base = parseInt(localStorage.getItem(k)) || 1600;
-    }
-    totalExtrasCalc += descActivo ? Math.max(0, pic - base) : pic;
+    const togAct = d.toggleActivo === true;
+    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
+    totalExtrasCalc += togAct ? Math.max(0, pic - base) : pic;
   });
   const totalPicada  = totalExtrasCalc * c.picada;
   const totalExtras  = totalHoras   * c.extra;
@@ -532,20 +526,14 @@ function calcular(datos) {
 function renderResumen(datos) {
   const r = calcular(datos);
   const c = getConfig();
-  // Extras: si toggle activo = picadas - fijo; si no = todas las picadas son extras
+  // Extras mostradas arriba: toggleActivo guardado en el dato
   let totalExtrasPickup = 0;
   datos.forEach(function(d) {
-    const pic = parsear(d.picadas);
+    const pic    = parsear(d.picadas);
     if (pic <= 0) return;
-    let descActivo = false;
-    let base = 1600;
-    for (let k in localStorage) {
-      if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + d.idx))
-        descActivo = localStorage.getItem(k) === 'on';
-      if (k.indexOf('th_picbase_') === 0 && k.endsWith('_' + d.idx))
-        base = parseInt(localStorage.getItem(k)) || 1600;
-    }
-    totalExtrasPickup += descActivo ? Math.max(0, pic - base) : pic;
+    const togAct = d.toggleActivo === true;
+    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
+    totalExtrasPickup += togAct ? Math.max(0, pic - base) : pic;
   });
   document.getElementById('resumen-grid').innerHTML =
     '<div class="r-card"><div class="r-label">Picadas extra</div><div class="r-val c-green">' + totalExtrasPickup.toLocaleString('es') + '</div><div class="r-sub">Total: ' + r.totalPicadas.toLocaleString('es') + ' · ' + fmt(r.totalPicada) + '</div></div>' +
@@ -587,7 +575,14 @@ function renderDias(datos) {
       '<div class="day-tags">' +
         (entrada && entrada.usuario ? '<span class="tag-usuario">👤 ' + entrada.usuario + '</span>' : '') +
         (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + ' pic.</span>' : '') +
-        (() => { if (!getDescuento(idx)) return ''; const base = getPicBase(idx); const ext = pic - base; return ext > 0 ? '<span class="tag-extras">+' + ext.toLocaleString('es') + ' ext.</span>' : ''; })() +
+        (() => {
+          if (!entrada) return '';
+          const togAct = entrada.toggleActivo === true;
+          if (!togAct) return '';
+          const base = parseInt(entrada.picBase) || 1600;
+          const ext = pic - base;
+          return ext > 0 ? '<span class="tag-extras">+' + ext.toLocaleString('es') + ' ext.</span>' : '';
+        })() +
         (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
         (entrada && entrada.nota ? '<span class="nota-preview">📝 ' + entrada.nota + '</span>' : '') +
       '</div>' +
@@ -1093,10 +1088,6 @@ async function generarPDF() {
   });
   y2 += 30;
 
-  // ── Columnas dinámicas según modo ──
-  // Completo:    DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | GANANCIA | USUARIO | NOTA
-  // Solo activ.: DÍA | FECHA | ENTRADA | SALIDA | PICADAS | H.EXT | USUARIO  | NOTA
-
   // Orden: DÍA | FECHA | USUARIO | ENTRADA | SALIDA | PICADAS | EXTRAS | H.EXT | GANANCIA | NOTA
   const COL = {
     dia:      14,
@@ -1232,17 +1223,28 @@ async function generarPDF() {
   doc.setDrawColor(...ACC); doc.setLineWidth(0.4); doc.line(14, y2, 196, y2); y2 += 6;
   // Extras PDF: sin toggle = todas las picadas; con toggle = excedente del fijo
   const totalExtPDF = datos.reduce((s, d) => {
-    const pic = parsear(d.picadas);
+    const pic    = parsear(d.picadas);
     if (pic <= 0) return s;
     const togAct = d.toggleActivo === true;
-    const ext = togAct ? Math.max(0, pic - (d.picBase || 1600)) : pic;
+    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
+    const ext    = togAct ? Math.max(0, pic - base) : pic;
     return s + ext;
   }, 0);
+  const gananciaExtPDF = totalExtPDF * c.picada;
+  const gananciaHorasPDF = r.totalHoras * c.extra;
+  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF;
+
   doc.setFontSize(8); doc.setFont('helvetica','bold');
   doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
-  doc.setTextColor(...GRN); doc.text('Extras: +' + totalExtPDF.toLocaleString('es'), 80, y2);
-  doc.setTextColor(...ACC); doc.text('Horas extra: ' + r.totalHoras.toFixed(1) + 'h', 130, y2);
-  if (completo) { y2 += 6; doc.setTextColor(...GRN); doc.text('Neto a cobrar: ' + fmt(r.neto), 14, y2); }
+  doc.setTextColor(...GRN); doc.text('Extras: ' + totalExtPDF.toLocaleString('es') + ' (' + fmt(gananciaExtPDF) + ')', 70, y2);
+  doc.setTextColor(...ACC); doc.text('H.Extra: ' + r.totalHoras.toFixed(1) + 'h (' + fmt(gananciaHorasPDF) + ')', 140, y2);
+  y2 += 6;
+  doc.setTextColor(...GRN); doc.setFontSize(9);
+  doc.text('Total ganado extras: ' + fmt(gananciaTotalPDF), 14, y2);
+  if (completo) {
+    doc.setTextColor(...MUT); doc.setFontSize(8);
+    doc.text('Neto a cobrar: ' + fmt(r.neto), 110, y2);
+  }
 
   // Footer
   doc.setFontSize(7); doc.setTextColor(...MUT);
