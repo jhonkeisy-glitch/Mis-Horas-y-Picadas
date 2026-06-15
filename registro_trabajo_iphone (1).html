@@ -958,7 +958,10 @@ async function compartirDia(idx, fecha, entrada) {
   const hin  = entrada && entrada.horaEntrada ? entrada.horaEntrada : '--:--';
   const hout = entrada && entrada.horaSalida  ? entrada.horaSalida  : '--:--';
   const c    = getConfig();
-  const gananciaPicadas = pic * c.picada;
+  // Ganancia sobre extras, no sobre total picadas
+  const togActImg  = entrada && entrada.toggleActivo === true;
+  const extImg     = togActImg ? Math.max(0, pic - (parseInt(entrada.picBase) || 1600)) : pic;
+  const gananciaPicadas = extImg * c.picada;
   const gananciaHoras   = hex * c.extra;
 
   const div = document.getElementById('canvas-dia');
