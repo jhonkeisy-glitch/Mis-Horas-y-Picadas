@@ -222,6 +222,17 @@
   .toggle-desc-title{font-size:13px;font-weight:700;color:var(--muted2);}
   .toggle-descuento.activo .toggle-desc-title{color:var(--accent3);}
   .toggle-desc-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+  /* REGLAS DE DESCUENTO ENTRE MESES */
+  .desc-rule{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .desc-rule-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .desc-rule-title{font-size:13px;font-weight:700;}
+  .desc-rule-monto{font-size:14px;font-weight:800;color:var(--red);white-space:nowrap;}
+  .desc-rule-sub{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4;}
+  .desc-rule-del{background:none;border:none;color:var(--red);font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;padding:0;font-family:-apple-system,sans-serif;}
+  .desc-empty{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .desc-card-warn{margin-top:8px;background:rgba(244,63,94,0.07);border:1.5px solid rgba(244,63,94,0.25);border-radius:12px;padding:10px 14px;}
+  select.desc-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;appearance:none;}
+  select.desc-select:focus{border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -236,6 +247,9 @@
       </button>
       <button class="icon-btn" onclick="mostrarVista('historial')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </button>
+      <button class="icon-btn" onclick="abrirDescuentosModal()" title="Descuentos entre meses">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.2"/><circle cx="17.5" cy="17.5" r="2.2"/></svg>
       </button>
     </div>
   </div>
@@ -359,6 +373,39 @@
   </div>
 </div>
 
+<!-- DESCUENTOS ENTRE MESES MODAL -->
+<div class="pdf-modal-bg" id="descuentos-modal-bg" onclick="cerrarDescuentosModal(event)">
+  <div class="pdf-modal" style="max-height:85vh;overflow-y:auto;">
+    <div class="pdf-modal-handle"></div>
+    <h3>📉 Descuentos entre meses</h3>
+    <p>Descontá un % de las extras (picadas + horas) de un mes, aplicado a las extras de otro mes. Podés crear varias reglas, cada una con su propio %.</p>
+
+    <div id="lista-descuentos"></div>
+
+    <div style="margin-top:14px;padding-top:16px;border-top:1px solid var(--border);">
+      <div class="ff">
+        <label>Mes de origen (del extra)</label>
+        <div class="form-grid">
+          <select id="desc-origen-mes" class="desc-select"></select>
+          <select id="desc-origen-anio" class="desc-select"></select>
+        </div>
+      </div>
+      <div class="ff" style="margin-top:10px;">
+        <label>Mes destino (se descuenta)</label>
+        <div class="form-grid">
+          <select id="desc-destino-mes" class="desc-select"></select>
+          <select id="desc-destino-anio" class="desc-select"></select>
+        </div>
+      </div>
+      <div class="ff" style="margin-top:10px;">
+        <label>Porcentaje a descontar (%)</label>
+        <input type="number" id="desc-porcentaje" step="0.1" inputmode="decimal" placeholder="Ej: 13.5">
+      </div>
+      <button class="btn-generar" onclick="agregarReglaDescuento()">+ Agregar descuento</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -381,6 +428,52 @@ function setDescuento(idx, val) { localStorage.setItem(kDescuento(idx), val ? 'o
 // ─── DATOS ───
 function getDatos()    { return JSON.parse(localStorage.getItem(kDatos())  || '[]'); }
 function setDatos(d)   { localStorage.setItem(kDatos(), JSON.stringify(d)); }
+function getDatosMes(mes) { return JSON.parse(localStorage.getItem('th_datos_' + mes) || '[]'); }
+
+// ─── DESCUENTOS ENTRE MESES ───
+// Regla: { id, origen:'YYYY-MM', destino:'YYYY-MM', porcentaje }
+// Significa: se toma el % del dinero de "horas extra" del mes ORIGEN,
+// y ese monto se resta del neto del mes DESTINO.
+const kReglasDescuento = 'th_descuentos_reglas';
+function getReglasDescuento() {
+  const raw = JSON.parse(localStorage.getItem(kReglasDescuento) || '[]');
+  const formatoOk = /^\d{4}-(0[1-9]|1[0-2])$/;
+  const limpias = raw.filter(r => formatoOk.test(r.origen) && formatoOk.test(r.destino));
+  if (limpias.length !== raw.length) guardarReglasDescuento(limpias); // auto-limpia reglas con mes inválido (bug del picker nativo)
+  return limpias;
+}
+function guardarReglasDescuento(reglas){ localStorage.setItem(kReglasDescuento, JSON.stringify(reglas)); }
+
+function calcularExtrasCombinadoMes(mes) {
+  const datos = getDatosMes(mes);
+  const c = getConfig();
+  let totalHoras = 0;
+  let totalPicadaExtra = 0;
+  datos.forEach(function(d) {
+    totalHoras += parsear(d.horas);
+    const pic = parsear(d.picadas);
+    if (pic <= 0) return;
+    const togAct = d.toggleActivo === true;
+    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
+    totalPicadaExtra += togAct ? Math.max(0, pic - base) : pic;
+  });
+  const dineroHoras   = totalHoras * c.extra;
+  const dineroPicadas = totalPicadaExtra * c.picada;
+  return dineroHoras + dineroPicadas; // Picadas extra + Horas Extra = "las extras" del mes
+}
+
+function calcularDescuentosMes(mes) {
+  const reglas = getReglasDescuento().filter(r => r.destino === mes);
+  let total = 0;
+  const detalle = [];
+  reglas.forEach(r => {
+    const extrasOrigen = calcularExtrasCombinadoMes(r.origen);
+    const monto = extrasOrigen * (parsear(r.porcentaje) / 100);
+    total += monto;
+    detalle.push({ id: r.id, origen: r.origen, porcentaje: r.porcentaje, monto });
+  });
+  return { total, detalle };
+}
 
 // ─── FECHA INICIO DEL MES ───
 function getFechaInicio() {
@@ -499,7 +592,8 @@ function ajustarDias(delta) {
 }
 
 // ─── CALCULAR ───
-function calcular(datos) {
+function calcular(datos, mes) {
+  mes = mes || mesActual;
   const c = getConfig();
   let totalPicadas = 0, totalHoras = 0;
   datos.forEach(d => { totalPicadas += parsear(d.picadas); totalHoras += parsear(d.horas); });
@@ -512,14 +606,26 @@ function calcular(datos) {
     const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
     totalExtrasCalc += togAct ? Math.max(0, pic - base) : pic;
   });
-  const totalPicada  = totalExtrasCalc * c.picada;
-  const totalExtras  = totalHoras   * c.extra;
-  const totalTonto   = totalPicada  + c.base + totalExtras;
-  const rde          = totalTonto * (c.rde       / 100);
-  const segSocial    = totalTonto * (c.segsocial / 100);
-  const deducciones  = rde + segSocial;
-  const neto         = totalTonto - deducciones;
-  return { totalPicadas, totalHoras, totalPicada, totalExtras, totalTonto, rde, segSocial, deducciones, neto };
+  const totalPicada          = totalExtrasCalc * c.picada;   // dinero de picadas extra (bruto)
+  const totalExtrasBruto     = totalHoras * c.extra;         // dinero de horas extra (bruto)
+  // "Las extras" del mes = Picadas extra + Horas Extra.
+  const extrasCombinadoBruto = totalPicada + totalExtrasBruto;
+  const desc                 = calcularDescuentosMes(mes);
+  // RDE y Seg. Social se calculan sobre el BRUTO (antes de aplicar el % de penalización)
+  const totalTonto           = extrasCombinadoBruto + c.base;
+  const rde                  = totalTonto * (c.rde       / 100);
+  const segSocial            = totalTonto * (c.segsocial / 100);
+  const deducciones          = rde + segSocial;
+  // El % de penalización se descuenta al final, directamente del neto
+  const extrasCombinadoNeto  = Math.max(0, extrasCombinadoBruto - desc.total);
+  const neto                 = totalTonto - deducciones - desc.total;
+  return {
+    totalPicadas, totalHoras, totalPicada, totalExtrasBruto,
+    extrasCombinadoBruto, extrasCombinadoNeto,
+    totalTonto, rde, segSocial, deducciones,
+    descuentos: desc.total, descuentosDetalle: desc.detalle,
+    neto
+  };
 }
 
 // ─── RENDER RESUMEN ───
@@ -537,9 +643,17 @@ function renderResumen(datos) {
   });
   document.getElementById('resumen-grid').innerHTML =
     '<div class="r-card"><div class="r-label">Picadas extra</div><div class="r-val c-green">' + totalExtrasPickup.toLocaleString('es') + '</div><div class="r-sub">Total: ' + r.totalPicadas.toLocaleString('es') + ' · ' + fmt(r.totalPicada) + '</div></div>' +
-    '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + fmt(r.totalExtras) + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + fmt(r.totalExtrasBruto) + '</div></div>' +
     '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.totalTonto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
     '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + datos.filter(d => parsear(d.picadas) > 0 || parsear(d.horas) > 0).length + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
+    (r.descuentos > 0 ?
+      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5);padding:11px 13px;"><div class="r-label" style="font-size:9px;margin-bottom:3px;">📉 Descuento en Extras (Picadas + Horas)</div><div class="r-val c-red" style="font-size:15px">' + fmt(r.extrasCombinadoBruto) + ' − ' + fmt(r.descuentos) + ' = ' + fmt(r.extrasCombinadoNeto) + '</div><div class="r-sub" style="font-size:10px;margin-top:2px;">' +
+        r.descuentosDetalle.map(function(d) {
+          const [oy, om] = d.origen.split('-').map(Number);
+          return d.porcentaje + '% de las extras de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
+        }).join(' · ') +
+      '</div></div>' : ''
+    ) +
     '<div class="r-card full"><div class="r-label">💰 Neto a Cobrar</div><div class="r-val c-green" style="font-size:32px;letter-spacing:-1px">' + fmt(r.neto) + '</div><div class="r-sub">RDE ' + c.rde + '%: ' + fmt(r.rde) + ' · Seg.Social ' + c.segsocial + '%: ' + fmt(r.segSocial) + '</div></div>';
 }
 
@@ -848,7 +962,7 @@ function renderHistorial() {
   meses.forEach(mk => {
     const datos = JSON.parse(localStorage.getItem('th_datos_' + mk) || '[]');
     if (!datos.length) return;
-    const r = calcular(datos);
+    const r = calcular(datos, mk);
     const [y, m] = mk.split('-').map(Number);
     html +=
       '<div class="hist-card">' +
@@ -858,7 +972,10 @@ function renderHistorial() {
         '</div>' +
         '<div class="hist-body">' +
           '<div class="hrow"><span>Picadas</span><span>' + r.totalPicadas.toLocaleString('es') + ' → ' + fmt(r.totalPicada) + '</span></div>' +
-          '<div class="hrow"><span>Horas extra</span><span>' + r.totalHoras.toFixed(1) + 'h → ' + fmt(r.totalExtras) + '</span></div>' +
+          '<div class="hrow"><span>Horas extra</span><span>' + r.totalHoras.toFixed(1) + 'h → ' + fmt(r.totalExtrasBruto) + '</span></div>' +
+          (r.descuentos > 0 ? '<div class="hrow"><span>Extras totales (bruto)</span><span>' + fmt(r.extrasCombinadoBruto) + '</span></div>' : '') +
+          (r.descuentos > 0 ? '<div class="hrow"><span>Descuento (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')</span><span class="c-red">-' + fmt(r.descuentos) + '</span></div>' : '') +
+          (r.descuentos > 0 ? '<div class="hrow"><span>Extras netas</span><span>' + fmt(r.extrasCombinadoNeto) + '</span></div>' : '') +
           '<div class="hrow"><span>Sueldo base</span><span>' + fmt(c.base) + '</span></div>' +
           '<div class="hrow"><span>Bruto</span><span>' + fmt(r.totalTonto) + '</span></div>' +
           '<div class="hrow"><span>RDE (' + c.rde + '%)</span><span class="c-red">-' + fmt(r.rde) + '</span></div>' +
@@ -1069,12 +1186,12 @@ async function generarPDF() {
   // Resumen
   const cols = completo ? [
     { label:'PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtrasBruto), color: ACC },
     { label:'BRUTO', val: fmt(r.totalTonto), sub:'', color: TEXT },
     { label:'NETO A COBRAR', val: fmt(r.neto), sub:'RDE+SS: '+fmt(r.deducciones), color: GRN },
   ] : [
     { label:'TOTAL PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtrasBruto), color: ACC },
     { label:'DÍAS TRABAJADOS', val: datos.filter(d=>parsear(d.picadas)>0||parsear(d.horas)>0).length+'', sub:'', color: GRN },
   ];
 
@@ -1233,9 +1350,9 @@ async function generarPDF() {
     const ext    = togAct ? Math.max(0, pic - base) : pic;
     return s + ext;
   }, 0);
-  const gananciaExtPDF = totalExtPDF * c.picada;
-  const gananciaHorasPDF = r.totalHoras * c.extra;
-  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF;
+  const gananciaExtPDF = totalExtPDF * c.picada;   // dinero de picadas extra (bruto), coincide con r.totalPicada
+  const gananciaHorasPDF = r.totalExtrasBruto;     // dinero de horas extra (bruto)
+  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF; // == r.extrasCombinadoBruto
 
   doc.setFontSize(8); doc.setFont('helvetica','bold');
   doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
@@ -1243,10 +1360,19 @@ async function generarPDF() {
   doc.setTextColor(...ACC); doc.text('H.Extra: ' + r.totalHoras.toFixed(1) + 'h (' + fmt(gananciaHorasPDF) + ')', 140, y2);
   y2 += 6;
   doc.setTextColor(...GRN); doc.setFontSize(9);
-  doc.text('Total ganado extras: ' + fmt(gananciaTotalPDF), 14, y2);
+  doc.text('Total ganado extras (bruto): ' + fmt(gananciaTotalPDF), 14, y2);
   if (completo) {
     doc.setTextColor(...MUT); doc.setFontSize(8);
     doc.text('Neto a cobrar: ' + fmt(r.neto), 110, y2);
+  }
+  if (completo && r.descuentos > 0) {
+    y2 += 6;
+    doc.setTextColor(...ORG); doc.setFontSize(8);
+    const detalleDesc = r.descuentosDetalle.map(function(d) {
+      const [oy, om] = d.origen.split('-').map(Number);
+      return d.porcentaje + '% de ' + MESES[om-1].slice(0,3) + ' ' + oy;
+    }).join(', ');
+    doc.text('Descuento en extras: -' + fmt(r.descuentos) + ' (' + detalleDesc + ') · Extras netas: ' + fmt(r.extrasCombinadoNeto), 14, y2);
   }
 
   // Footer
@@ -1264,6 +1390,92 @@ async function generarPDF() {
     a.href = url; a.download = file.name; a.click();
     URL.revokeObjectURL(url);
   }
+}
+
+// ─── MODAL DESCUENTOS ENTRE MESES ───
+function obtenerAniosDisponibles() {
+  const anios = new Set();
+  const hoy = new Date().getFullYear();
+  for (let y = hoy - 2; y <= hoy + 2; y++) anios.add(y);
+  const [yAct] = mesActual.split('-').map(Number);
+  anios.add(yAct); anios.add(yAct - 1); anios.add(yAct + 1);
+  for (let key in localStorage) {
+    if (key.startsWith('th_datos_')) {
+      const y = parseInt(key.replace('th_datos_','').split('-')[0]);
+      if (!isNaN(y)) anios.add(y);
+    }
+  }
+  return Array.from(anios).sort((a,b) => a - b);
+}
+function poblarSelectMesAnio(selMes, selAnio, mesDefault, anioDefault) {
+  selMes.innerHTML = MESES.map((m, i) => '<option value="' + String(i+1).padStart(2,'0') + '">' + m + '</option>').join('');
+  const anios = obtenerAniosDisponibles();
+  selAnio.innerHTML = anios.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+  selMes.value  = mesDefault;
+  selAnio.value = anioDefault;
+}
+function abrirDescuentosModal() {
+  const [yAct, mAct] = mesActual.split('-');
+  // Origen: por defecto, el mes anterior al actual
+  const fOrigen = new Date(parseInt(yAct), parseInt(mAct) - 1 - 1, 1);
+  poblarSelectMesAnio(
+    document.getElementById('desc-origen-mes'), document.getElementById('desc-origen-anio'),
+    String(fOrigen.getMonth()+1).padStart(2,'0'), fOrigen.getFullYear()
+  );
+  poblarSelectMesAnio(
+    document.getElementById('desc-destino-mes'), document.getElementById('desc-destino-anio'),
+    mAct, parseInt(yAct)
+  );
+  document.getElementById('desc-porcentaje').value = '';
+  renderReglasDescuento();
+  document.getElementById('descuentos-modal-bg').classList.add('open');
+}
+function cerrarDescuentosModal(e) {
+  if (e && e.target !== document.getElementById('descuentos-modal-bg')) return;
+  document.getElementById('descuentos-modal-bg').classList.remove('open');
+  // Refrescar por si el cambio afecta al mes o historial que se está viendo
+  renderAll();
+  if (document.getElementById('view-historial').classList.contains('active')) renderHistorial();
+}
+function agregarReglaDescuento() {
+  const origen  = document.getElementById('desc-origen-anio').value  + '-' + document.getElementById('desc-origen-mes').value;
+  const destino = document.getElementById('desc-destino-anio').value + '-' + document.getElementById('desc-destino-mes').value;
+  const porcentaje = parsear(document.getElementById('desc-porcentaje').value);
+  const formatoOk = /^\d{4}-(0[1-9]|1[0-2])$/;
+  if (!formatoOk.test(origen) || !formatoOk.test(destino)) { alert('Hubo un problema al leer el mes elegido. Probá de nuevo.'); return; }
+  if (!porcentaje || porcentaje <= 0) { alert('Ingresá un porcentaje válido.'); return; }
+  const reglas = getReglasDescuento();
+  reglas.push({ id: Date.now() + '-' + Math.floor(Math.random()*1000), origen, destino, porcentaje });
+  guardarReglasDescuento(reglas);
+  document.getElementById('desc-porcentaje').value = '';
+  renderReglasDescuento();
+}
+function eliminarReglaDescuento(id) {
+  const reglas = getReglasDescuento().filter(r => r.id !== id);
+  guardarReglasDescuento(reglas);
+  renderReglasDescuento();
+}
+function renderReglasDescuento() {
+  const cont = document.getElementById('lista-descuentos');
+  const reglas = getReglasDescuento();
+  if (!reglas.length) {
+    cont.innerHTML = '<p class="desc-empty">Aún no agregaste ningún descuento.</p>';
+    return;
+  }
+  const ordenadas = reglas.slice().sort((a, b) => b.destino.localeCompare(a.destino));
+  cont.innerHTML = ordenadas.map(function(r) {
+    const monto = calcularExtrasCombinadoMes(r.origen) * (parsear(r.porcentaje) / 100);
+    const [oy, om] = r.origen.split('-').map(Number);
+    const [dy, dm] = r.destino.split('-').map(Number);
+    return '<div class="desc-rule">' +
+      '<div class="desc-rule-top">' +
+        '<span class="desc-rule-title">' + MESES[om-1] + ' ' + oy + ' → ' + MESES[dm-1] + ' ' + dy + '</span>' +
+        '<span class="desc-rule-monto">-' + fmt(monto) + '</span>' +
+      '</div>' +
+      '<div class="desc-rule-sub">' + r.porcentaje + '% de las extras (picadas+horas) de ' + MESES[om-1] + ' ' + oy + ', descontado de las extras de ' + MESES[dm-1] + ' ' + dy + '</div>' +
+      '<button class="desc-rule-del" onclick="eliminarReglaDescuento(\'' + r.id + '\')">🗑 Eliminar</button>' +
+    '</div>';
+  }).join('');
 }
 
 // ─── USUARIO AUTOCOMPLETE ───
