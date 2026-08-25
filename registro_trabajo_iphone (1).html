@@ -233,9 +233,34 @@
   .desc-card-warn{margin-top:8px;background:rgba(244,63,94,0.07);border:1.5px solid rgba(244,63,94,0.25);border-radius:12px;padding:10px 14px;}
   select.desc-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;appearance:none;}
   select.desc-select:focus{border-color:var(--accent);}
+
+  /* ══════════════ SPLASH / NOTICIA DEL DÍA ══════════════ */
+  .splash-bg{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity 0.3s ease;}
+  .splash-bg.closed{opacity:0;pointer-events:none;}
+  .splash-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px 22px;text-align:center;}
+  .splash-fecha{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  .splash-titulo{font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .splash-noticia{font-size:14px;line-height:1.6;color:var(--muted2);white-space:pre-wrap;margin-bottom:22px;}
+  .btn-splash-entrar{width:100%;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-splash-entrar:active{opacity:0.8;}
 </style>
 </head>
 <body>
+
+<!-- ══════════════ SPLASH / NOTICIA DEL DÍA ══════════════
+     Esta pantalla aparece SIEMPRE antes de entrar a la app.
+     Para cambiar el mensaje, edita la variable NOTICIA_DEL_DIA
+     dentro de <script>, cerca del inicio (buscar "NOTICIA_DEL_DIA").
+     No hace falta tocar nada más. -->
+<div class="splash-bg" id="splash-bg">
+  <div class="splash-card">
+    <div class="splash-fecha" id="splash-fecha"></div>
+    <div class="splash-titulo">📰 Noticia del día</div>
+    <div class="splash-noticia" id="splash-noticia"></div>
+    <button class="btn-splash-entrar" onclick="cerrarSplash()">Entrar</button>
+  </div>
+</div>
+
 <div class="safe-top"></div>
 
 <div class="header">
@@ -378,7 +403,7 @@
   <div class="pdf-modal" style="max-height:85vh;overflow-y:auto;">
     <div class="pdf-modal-handle"></div>
     <h3>📉 Descuentos entre meses</h3>
-    <p>Descontá un % de las extras (picadas + horas) de un mes, aplicado a las extras de otro mes. Podés crear varias reglas, cada una con su propio %.</p>
+    <p>Descontá un % del extra de un mes, aplicado al neto de otro mes. Podés crear varias reglas, cada una con su propio %.</p>
 
     <div id="lista-descuentos"></div>
 
@@ -407,6 +432,28 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// ✏️  NOTICIA DEL DÍA — edita SOLO el texto entre comillas de
+//     la línea de abajo para cambiar el mensaje de la pantalla
+//     de bienvenida. Podés usar \n para saltos de línea.
+// ══════════════════════════════════════════════════════════
+const NOTICIA_DEL_DIA = "DIONAS DECIDIO ES GAY.";
+
+function mostrarSplash() {
+  const fechaEl = document.getElementById('splash-fecha');
+  const noticiaEl = document.getElementById('splash-noticia');
+  const hoy = new Date();
+  const DIAS_LARGO = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  fechaEl.textContent = DIAS_LARGO[hoy.getDay()] + ' ' + hoy.getDate() + ' de ' + MESES_LARGO[hoy.getMonth()];
+  noticiaEl.textContent = NOTICIA_DEL_DIA;
+}
+function cerrarSplash() {
+  const splash = document.getElementById('splash-bg');
+  splash.classList.add('closed');
+  setTimeout(() => { splash.style.display = 'none'; }, 300);
+}
+
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
@@ -444,22 +491,12 @@ function getReglasDescuento() {
 }
 function guardarReglasDescuento(reglas){ localStorage.setItem(kReglasDescuento, JSON.stringify(reglas)); }
 
-function calcularExtrasCombinadoMes(mes) {
+function calcularExtrasHorasMes(mes) {
   const datos = getDatosMes(mes);
   const c = getConfig();
   let totalHoras = 0;
-  let totalPicadaExtra = 0;
-  datos.forEach(function(d) {
-    totalHoras += parsear(d.horas);
-    const pic = parsear(d.picadas);
-    if (pic <= 0) return;
-    const togAct = d.toggleActivo === true;
-    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
-    totalPicadaExtra += togAct ? Math.max(0, pic - base) : pic;
-  });
-  const dineroHoras   = totalHoras * c.extra;
-  const dineroPicadas = totalPicadaExtra * c.picada;
-  return dineroHoras + dineroPicadas; // Picadas extra + Horas Extra = "las extras" del mes
+  datos.forEach(d => totalHoras += parsear(d.horas));
+  return totalHoras * c.extra;
 }
 
 function calcularDescuentosMes(mes) {
@@ -467,7 +504,7 @@ function calcularDescuentosMes(mes) {
   let total = 0;
   const detalle = [];
   reglas.forEach(r => {
-    const extrasOrigen = calcularExtrasCombinadoMes(r.origen);
+    const extrasOrigen = calcularExtrasHorasMes(r.origen);
     const monto = extrasOrigen * (parsear(r.porcentaje) / 100);
     total += monto;
     detalle.push({ id: r.id, origen: r.origen, porcentaje: r.porcentaje, monto });
@@ -606,26 +643,17 @@ function calcular(datos, mes) {
     const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
     totalExtrasCalc += togAct ? Math.max(0, pic - base) : pic;
   });
-  const totalPicada          = totalExtrasCalc * c.picada;   // dinero de picadas extra (bruto)
-  const totalExtrasBruto     = totalHoras * c.extra;         // dinero de horas extra (bruto)
-  // "Las extras" del mes = Picadas extra + Horas Extra.
-  const extrasCombinadoBruto = totalPicada + totalExtrasBruto;
-  const desc                 = calcularDescuentosMes(mes);
-  // RDE y Seg. Social se calculan sobre el BRUTO (antes de aplicar el % de penalización)
-  const totalTonto           = extrasCombinadoBruto + c.base;
-  const rde                  = totalTonto * (c.rde       / 100);
-  const segSocial            = totalTonto * (c.segsocial / 100);
-  const deducciones          = rde + segSocial;
-  // El % de penalización se descuenta al final, directamente del neto
-  const extrasCombinadoNeto  = Math.max(0, extrasCombinadoBruto - desc.total);
-  const neto                 = totalTonto - deducciones - desc.total;
-  return {
-    totalPicadas, totalHoras, totalPicada, totalExtrasBruto,
-    extrasCombinadoBruto, extrasCombinadoNeto,
-    totalTonto, rde, segSocial, deducciones,
-    descuentos: desc.total, descuentosDetalle: desc.detalle,
-    neto
-  };
+  const totalPicada     = totalExtrasCalc * c.picada;
+  const totalExtrasBruto = totalHoras * c.extra;
+  // Descuentos de otros meses que se aplican sobre las HORAS EXTRA de este mes
+  const desc            = calcularDescuentosMes(mes);
+  const totalExtras     = Math.max(0, totalExtrasBruto - desc.total);
+  const totalTonto      = totalPicada + c.base + totalExtras;
+  const rde             = totalTonto * (c.rde       / 100);
+  const segSocial       = totalTonto * (c.segsocial / 100);
+  const deducciones     = rde + segSocial;
+  const neto            = totalTonto - deducciones;
+  return { totalPicadas, totalHoras, totalPicada, totalExtras, totalExtrasBruto, totalTonto, rde, segSocial, deducciones, descuentos: desc.total, descuentosDetalle: desc.detalle, neto };
 }
 
 // ─── RENDER RESUMEN ───
@@ -643,14 +671,14 @@ function renderResumen(datos) {
   });
   document.getElementById('resumen-grid').innerHTML =
     '<div class="r-card"><div class="r-label">Picadas extra</div><div class="r-val c-green">' + totalExtrasPickup.toLocaleString('es') + '</div><div class="r-sub">Total: ' + r.totalPicadas.toLocaleString('es') + ' · ' + fmt(r.totalPicada) + '</div></div>' +
-    '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + fmt(r.totalExtrasBruto) + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + (r.descuentos > 0 ? fmt(r.totalExtrasBruto) + ' − ' + fmt(r.descuentos) + ' = ' + fmt(r.totalExtras) : fmt(r.totalExtras)) + '</div></div>' +
     '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.totalTonto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
     '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + datos.filter(d => parsear(d.picadas) > 0 || parsear(d.horas) > 0).length + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
     (r.descuentos > 0 ?
-      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5);padding:11px 13px;"><div class="r-label" style="font-size:9px;margin-bottom:3px;">📉 Descuento en Extras (Picadas + Horas)</div><div class="r-val c-red" style="font-size:15px">' + fmt(r.extrasCombinadoBruto) + ' − ' + fmt(r.descuentos) + ' = ' + fmt(r.extrasCombinadoNeto) + '</div><div class="r-sub" style="font-size:10px;margin-top:2px;">' +
+      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5)"><div class="r-label">📉 Descuento en Horas Extra</div><div class="r-val c-red" style="font-size:22px">-' + fmt(r.descuentos) + '</div><div class="r-sub">' +
         r.descuentosDetalle.map(function(d) {
           const [oy, om] = d.origen.split('-').map(Number);
-          return d.porcentaje + '% de las extras de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
+          return d.porcentaje + '% del extra de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
         }).join(' · ') +
       '</div></div>' : ''
     ) +
@@ -973,9 +1001,8 @@ function renderHistorial() {
         '<div class="hist-body">' +
           '<div class="hrow"><span>Picadas</span><span>' + r.totalPicadas.toLocaleString('es') + ' → ' + fmt(r.totalPicada) + '</span></div>' +
           '<div class="hrow"><span>Horas extra</span><span>' + r.totalHoras.toFixed(1) + 'h → ' + fmt(r.totalExtrasBruto) + '</span></div>' +
-          (r.descuentos > 0 ? '<div class="hrow"><span>Extras totales (bruto)</span><span>' + fmt(r.extrasCombinadoBruto) + '</span></div>' : '') +
-          (r.descuentos > 0 ? '<div class="hrow"><span>Descuento (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')</span><span class="c-red">-' + fmt(r.descuentos) + '</span></div>' : '') +
-          (r.descuentos > 0 ? '<div class="hrow"><span>Extras netas</span><span>' + fmt(r.extrasCombinadoNeto) + '</span></div>' : '') +
+          (r.descuentos > 0 ? '<div class="hrow"><span>Descuento en extra (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')</span><span class="c-red">-' + fmt(r.descuentos) + '</span></div>' : '') +
+          (r.descuentos > 0 ? '<div class="hrow"><span>Extra neto</span><span>' + fmt(r.totalExtras) + '</span></div>' : '') +
           '<div class="hrow"><span>Sueldo base</span><span>' + fmt(c.base) + '</span></div>' +
           '<div class="hrow"><span>Bruto</span><span>' + fmt(r.totalTonto) + '</span></div>' +
           '<div class="hrow"><span>RDE (' + c.rde + '%)</span><span class="c-red">-' + fmt(r.rde) + '</span></div>' +
@@ -1186,12 +1213,12 @@ async function generarPDF() {
   // Resumen
   const cols = completo ? [
     { label:'PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtrasBruto), color: ACC },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
     { label:'BRUTO', val: fmt(r.totalTonto), sub:'', color: TEXT },
     { label:'NETO A COBRAR', val: fmt(r.neto), sub:'RDE+SS: '+fmt(r.deducciones), color: GRN },
   ] : [
     { label:'TOTAL PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtrasBruto), color: ACC },
+    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
     { label:'DÍAS TRABAJADOS', val: datos.filter(d=>parsear(d.picadas)>0||parsear(d.horas)>0).length+'', sub:'', color: GRN },
   ];
 
@@ -1350,9 +1377,9 @@ async function generarPDF() {
     const ext    = togAct ? Math.max(0, pic - base) : pic;
     return s + ext;
   }, 0);
-  const gananciaExtPDF = totalExtPDF * c.picada;   // dinero de picadas extra (bruto), coincide con r.totalPicada
-  const gananciaHorasPDF = r.totalExtrasBruto;     // dinero de horas extra (bruto)
-  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF; // == r.extrasCombinadoBruto
+  const gananciaExtPDF = totalExtPDF * c.picada;
+  const gananciaHorasPDF = r.totalExtras; // ya incluye el descuento aplicado del mes elegido
+  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF;
 
   doc.setFontSize(8); doc.setFont('helvetica','bold');
   doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
@@ -1360,7 +1387,7 @@ async function generarPDF() {
   doc.setTextColor(...ACC); doc.text('H.Extra: ' + r.totalHoras.toFixed(1) + 'h (' + fmt(gananciaHorasPDF) + ')', 140, y2);
   y2 += 6;
   doc.setTextColor(...GRN); doc.setFontSize(9);
-  doc.text('Total ganado extras (bruto): ' + fmt(gananciaTotalPDF), 14, y2);
+  doc.text('Total ganado extras: ' + fmt(gananciaTotalPDF), 14, y2);
   if (completo) {
     doc.setTextColor(...MUT); doc.setFontSize(8);
     doc.text('Neto a cobrar: ' + fmt(r.neto), 110, y2);
@@ -1372,7 +1399,7 @@ async function generarPDF() {
       const [oy, om] = d.origen.split('-').map(Number);
       return d.porcentaje + '% de ' + MESES[om-1].slice(0,3) + ' ' + oy;
     }).join(', ');
-    doc.text('Descuento en extras: -' + fmt(r.descuentos) + ' (' + detalleDesc + ') · Extras netas: ' + fmt(r.extrasCombinadoNeto), 14, y2);
+    doc.text('Descuento en H.Extra: -' + fmt(r.descuentos) + ' (' + detalleDesc + ') · Bruto extra: ' + fmt(r.totalExtrasBruto), 14, y2);
   }
 
   // Footer
@@ -1464,7 +1491,7 @@ function renderReglasDescuento() {
   }
   const ordenadas = reglas.slice().sort((a, b) => b.destino.localeCompare(a.destino));
   cont.innerHTML = ordenadas.map(function(r) {
-    const monto = calcularExtrasCombinadoMes(r.origen) * (parsear(r.porcentaje) / 100);
+    const monto = calcularExtrasHorasMes(r.origen) * (parsear(r.porcentaje) / 100);
     const [oy, om] = r.origen.split('-').map(Number);
     const [dy, dm] = r.destino.split('-').map(Number);
     return '<div class="desc-rule">' +
@@ -1472,7 +1499,7 @@ function renderReglasDescuento() {
         '<span class="desc-rule-title">' + MESES[om-1] + ' ' + oy + ' → ' + MESES[dm-1] + ' ' + dy + '</span>' +
         '<span class="desc-rule-monto">-' + fmt(monto) + '</span>' +
       '</div>' +
-      '<div class="desc-rule-sub">' + r.porcentaje + '% de las extras (picadas+horas) de ' + MESES[om-1] + ' ' + oy + ', descontado de las extras de ' + MESES[dm-1] + ' ' + dy + '</div>' +
+      '<div class="desc-rule-sub">' + r.porcentaje + '% del extra de ' + MESES[om-1] + ' ' + oy + ', descontado del neto de ' + MESES[dm-1] + ' ' + dy + '</div>' +
       '<button class="desc-rule-del" onclick="eliminarReglaDescuento(\'' + r.id + '\')">🗑 Eliminar</button>' +
     '</div>';
   }).join('');
@@ -1511,6 +1538,7 @@ function mostrarSugsUsuario(input, panel) {
 }
 
 // ─── INIT ───
+mostrarSplash();
 cargarConfig();
 const hoyInit = new Date();
 mesActual = hoyInit.getFullYear() + '-' + String(hoyInit.getMonth()+1).padStart(2,'0');
