@@ -233,34 +233,9 @@
   .desc-card-warn{margin-top:8px;background:rgba(244,63,94,0.07);border:1.5px solid rgba(244,63,94,0.25);border-radius:12px;padding:10px 14px;}
   select.desc-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;appearance:none;}
   select.desc-select:focus{border-color:var(--accent);}
-
-  /* ══════════════ SPLASH / NOTICIA DEL DÍA ══════════════ */
-  .splash-bg{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;transition:opacity 0.3s ease;}
-  .splash-bg.closed{opacity:0;pointer-events:none;}
-  .splash-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px 22px;text-align:center;}
-  .splash-fecha{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
-  .splash-titulo{font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
-  .splash-noticia{font-size:14px;line-height:1.6;color:var(--muted2);white-space:pre-wrap;margin-bottom:22px;}
-  .btn-splash-entrar{width:100%;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
-  .btn-splash-entrar:active{opacity:0.8;}
 </style>
 </head>
 <body>
-
-<!-- ══════════════ SPLASH / NOTICIA DEL DÍA ══════════════
-     Esta pantalla aparece SIEMPRE antes de entrar a la app.
-     Para cambiar el mensaje, edita la variable NOTICIA_DEL_DIA
-     dentro de <script>, cerca del inicio (buscar "NOTICIA_DEL_DIA").
-     No hace falta tocar nada más. -->
-<div class="splash-bg" id="splash-bg">
-  <div class="splash-card">
-    <div class="splash-fecha" id="splash-fecha"></div>
-    <div class="splash-titulo">📰 Noticia del día</div>
-    <div class="splash-noticia" id="splash-noticia"></div>
-    <button class="btn-splash-entrar" onclick="cerrarSplash()">Entrar</button>
-  </div>
-</div>
-
 <div class="safe-top"></div>
 
 <div class="header">
@@ -296,11 +271,11 @@
 </div>
 
 <div class="config-bar">
-  <div class="cfg-item"><label>€/Picada</label><input type="number" id="cfg-picada" step="0.001" value="0.05" oninput="guardarConfig();renderResumen(getDatos())"></div>
-  <div class="cfg-item"><label>Base (€)</label><input type="number" id="cfg-base" step="10" value="1780" oninput="guardarConfig();renderResumen(getDatos())"></div>
-  <div class="cfg-item"><label>€/Hora Extra</label><input type="number" id="cfg-extra" step="0.5" value="10" oninput="guardarConfig();renderResumen(getDatos())"></div>
-  <div class="cfg-item"><label>RDE %</label><input type="number" id="cfg-rde" step="0.1" value="20.5" oninput="guardarConfig();renderResumen(getDatos())"></div>
-  <div class="cfg-item"><label>Seg. Social %</label><input type="number" id="cfg-segsocial" step="0.1" value="6.35" oninput="guardarConfig();renderResumen(getDatos())"></div>
+  <div class="cfg-item"><label>€/h Lun-Vie</label><input type="number" id="cfg-sem" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
+  <div class="cfg-item"><label>€/h Sábado</label><input type="number" id="cfg-sab" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
+  <div class="cfg-item"><label>€/h Domingo</label><input type="number" id="cfg-dom" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
+  <div class="cfg-item"><label>RDE %</label><input type="number" id="cfg-rde" step="0.1" value="20.5" oninput="guardarConfig();renderAll()"></div>
+  <div class="cfg-item"><label>Seg. Social %</label><input type="number" id="cfg-segsocial" step="0.1" value="6.35" oninput="guardarConfig();renderAll()"></div>
 </div>
 
 <div class="scroll-content">
@@ -363,7 +338,7 @@
       <div class="pdf-opt-icon">📊</div>
       <div class="pdf-opt-info">
         <h4>Informe completo</h4>
-        <p>Todos los días + sueldo base + neto a cobrar</p>
+        <p>Todos los días + horas, ganancia y neto a cobrar</p>
       </div>
       <div class="pdf-check">✓</div>
     </div>
@@ -371,7 +346,7 @@
       <div class="pdf-opt-icon">📋</div>
       <div class="pdf-opt-info">
         <h4>Solo actividad</h4>
-        <p>Días, total picadas y horas extra — sin sueldo</p>
+        <p>Días y horas trabajadas — sin importes</p>
       </div>
       <div class="pdf-check"></div>
     </div>
@@ -403,13 +378,13 @@
   <div class="pdf-modal" style="max-height:85vh;overflow-y:auto;">
     <div class="pdf-modal-handle"></div>
     <h3>📉 Descuentos entre meses</h3>
-    <p>Descontá un % del extra de un mes, aplicado al neto de otro mes. Podés crear varias reglas, cada una con su propio %.</p>
+    <p>Descontá un % de lo ganado por horas (bruto) de un mes, aplicado al neto de otro mes. Podés crear varias reglas, cada una con su propio %.</p>
 
     <div id="lista-descuentos"></div>
 
     <div style="margin-top:14px;padding-top:16px;border-top:1px solid var(--border);">
       <div class="ff">
-        <label>Mes de origen (del extra)</label>
+        <label>Mes de origen (de donde sale el %)</label>
         <div class="form-grid">
           <select id="desc-origen-mes" class="desc-select"></select>
           <select id="desc-origen-anio" class="desc-select"></select>
@@ -432,28 +407,6 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// ✏️  NOTICIA DEL DÍA — edita SOLO el texto entre comillas de
-//     la línea de abajo para cambiar el mensaje de la pantalla
-//     de bienvenida. Podés usar \n para saltos de línea.
-// ══════════════════════════════════════════════════════════
-const NOTICIA_DEL_DIA = "DIONAS SALIO DEL CLOSET AHORA ES GAY.";
-
-function mostrarSplash() {
-  const fechaEl = document.getElementById('splash-fecha');
-  const noticiaEl = document.getElementById('splash-noticia');
-  const hoy = new Date();
-  const DIAS_LARGO = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const MESES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  fechaEl.textContent = DIAS_LARGO[hoy.getDay()] + ' ' + hoy.getDate() + ' de ' + MESES_LARGO[hoy.getMonth()];
-  noticiaEl.textContent = NOTICIA_DEL_DIA;
-}
-function cerrarSplash() {
-  const splash = document.getElementById('splash-bg');
-  splash.classList.add('closed');
-  setTimeout(() => { splash.style.display = 'none'; }, 300);
-}
-
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
@@ -461,16 +414,9 @@ const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sába
 let mesActual = '';
 
 // ─── KEYS POR MES ───
-const kDatos   = () => 'th_datos_'    + mesActual;
-const kInicio  = () => 'th_inicio_'  + mesActual;
-const kDias    = () => 'th_dias_'    + mesActual;
-const kPicBase = (idx) => 'th_picbase_' + mesActual + '_' + idx;
-
-function getPicBase(idx) { return parseInt(localStorage.getItem(kPicBase(idx)) || '1600'); }
-function setPicBase(idx, val) { localStorage.setItem(kPicBase(idx), val); }
-const kDescuento = (idx) => 'th_desc_' + mesActual + '_' + idx;
-function getDescuento(idx) { return localStorage.getItem(kDescuento(idx)) === 'on'; }
-function setDescuento(idx, val) { localStorage.setItem(kDescuento(idx), val ? 'on' : 'off'); }
+const kDatos  = (m) => 'th_datos_'  + (m || mesActual);
+const kInicio = (m) => 'th_inicio_' + (m || mesActual);
+const kDias   = (m) => 'th_dias_'   + (m || mesActual);
 
 // ─── DATOS ───
 function getDatos()    { return JSON.parse(localStorage.getItem(kDatos())  || '[]'); }
@@ -491,20 +437,14 @@ function getReglasDescuento() {
 }
 function guardarReglasDescuento(reglas){ localStorage.setItem(kReglasDescuento, JSON.stringify(reglas)); }
 
-function calcularExtrasHorasMes(mes) {
-  const datos = getDatosMes(mes);
-  const c = getConfig();
-  let totalHoras = 0;
-  datos.forEach(d => totalHoras += parsear(d.horas));
-  return totalHoras * c.extra;
-}
+function calcularBrutoMes(mes) { return sumarHoras(getDatosMes(mes), mes).bruto; }
 
 function calcularDescuentosMes(mes) {
   const reglas = getReglasDescuento().filter(r => r.destino === mes);
   let total = 0;
   const detalle = [];
   reglas.forEach(r => {
-    const extrasOrigen = calcularExtrasHorasMes(r.origen);
+    const extrasOrigen = calcularBrutoMes(r.origen);
     const monto = extrasOrigen * (parsear(r.porcentaje) / 100);
     total += monto;
     detalle.push({ id: r.id, origen: r.origen, porcentaje: r.porcentaje, monto });
@@ -513,51 +453,60 @@ function calcularDescuentosMes(mes) {
 }
 
 // ─── FECHA INICIO DEL MES ───
-function getFechaInicio() {
-  const s = localStorage.getItem(kInicio());
+function getFechaInicio(mes) {
+  mes = mes || mesActual;
+  const s = localStorage.getItem(kInicio(mes));
   if (s) return new Date(s + 'T00:00:00');
-  // Por defecto: día 1 del mes seleccionado
-  const [y, m] = mesActual.split('-').map(Number);
+  const [y, m] = mes.split('-').map(Number);
   return new Date(y, m - 1, 1);
 }
 function setFechaInicio(f) { localStorage.setItem(kInicio(), fmtDate(f)); }
-
-// ─── DÍAS DEL PERÍODO ───
-function getDias() { return parseInt(localStorage.getItem(kDias()) || '30'); }
+function getDias(mes) { return parseInt(localStorage.getItem(kDias(mes)) || '30'); }
 function setDias(n) { localStorage.setItem(kDias(), n); }
-
-// ─── TODAS LAS FECHAS DEL PERÍODO ───
-function getFechas() {
-  const inicio = getFechaInicio();
-  const dias   = getDias();
-  const arr = [];
-  for (let i = 0; i < dias; i++) {
-    const f = new Date(inicio);
-    f.setDate(f.getDate() + i);
-    arr.push(f);
-  }
+function getFechas(mes) {
+  const inicio = getFechaInicio(mes), dias = getDias(mes), arr = [];
+  for (let i = 0; i < dias; i++) { const f = new Date(inicio); f.setDate(f.getDate() + i); arr.push(f); }
   return arr;
 }
 
-// ─── CONFIG ───
+// ─── CONFIG (precio por hora: Lun-Vie, Sábado, Domingo) ───
+const CFG_IDS = { sem:'cfg-sem', sab:'cfg-sab', dom:'cfg-dom', rde:'cfg-rde', segsocial:'cfg-segsocial' };
+const CFG_DEF = { sem:11.98, sab:11.98, dom:11.98, rde:20.5, segsocial:6.35 };
+const NOMTIPO = { sem:'Lun-Vie', sab:'Sábado', dom:'Domingo' };
 function getConfig() {
-  return {
-    picada:    parseFloat(document.getElementById('cfg-picada').value)    || 0.05,
-    base:      parseFloat(document.getElementById('cfg-base').value)      || 1780,
-    extra:     parseFloat(document.getElementById('cfg-extra').value)     || 10,
-    rde:       parseFloat(document.getElementById('cfg-rde').value)       || 20.5,
-    segsocial: parseFloat(document.getElementById('cfg-segsocial').value) || 6.35,
-  };
+  const c = {};
+  for (const k in CFG_IDS) {
+    const n = parseFloat(String(document.getElementById(CFG_IDS[k]).value).replace(',', '.'));
+    c[k] = isNaN(n) ? CFG_DEF[k] : n;
+  }
+  return c;
 }
 function guardarConfig() { localStorage.setItem('th_config', JSON.stringify(getConfig())); }
 function cargarConfig() {
   const c = JSON.parse(localStorage.getItem('th_config') || 'null');
   if (!c) return;
-  if (c.picada    != null) document.getElementById('cfg-picada').value    = c.picada;
-  if (c.base      != null) document.getElementById('cfg-base').value      = c.base;
-  if (c.extra     != null) document.getElementById('cfg-extra').value     = c.extra;
-  if (c.rde       != null) document.getElementById('cfg-rde').value       = c.rde;
-  if (c.segsocial != null) document.getElementById('cfg-segsocial').value = c.segsocial;
+  for (const k in CFG_IDS) if (c[k] != null) document.getElementById(CFG_IDS[k]).value = c[k];
+}
+const tipoDia = (f) => f.getDay() === 6 ? 'sab' : f.getDay() === 0 ? 'dom' : 'sem';
+function horasEntre(hin, hout) {
+  if (!hin || !hout) return null;
+  const [h1, m1] = hin.split(':').map(Number), [h2, m2] = hout.split(':').map(Number);
+  let min = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (min < 0) min += 1440;
+  return Math.round(min / 60 * 100) / 100;
+}
+// Suma de horas y dinero por tipo de día (cada día usa su precio: Lun-Vie / Sábado / Domingo)
+function sumarHoras(datos, mes) {
+  const c = getConfig(), fechas = getFechas(mes);
+  const h = { sem:0, sab:0, dom:0 }, d = { sem:0, sab:0, dom:0 };
+  let dias = 0;
+  datos.forEach(e => {
+    const hrs = parsear(e.horas), f = fechas[e.idx];
+    if (hrs <= 0 || !f) return;
+    const k = tipoDia(f);
+    h[k] += hrs; d[k] += hrs * c[k]; dias++;
+  });
+  return { h, d, dias, totalHoras: h.sem + h.sab + h.dom, bruto: d.sem + d.sab + d.dom };
 }
 
 // ─── HELPERS ───
@@ -631,81 +580,52 @@ function ajustarDias(delta) {
 // ─── CALCULAR ───
 function calcular(datos, mes) {
   mes = mes || mesActual;
-  const c = getConfig();
-  let totalPicadas = 0, totalHoras = 0;
-  datos.forEach(d => { totalPicadas += parsear(d.picadas); totalHoras += parsear(d.horas); });
-  // El dinero se calcula sobre las extras (toggleActivo guardado en el dato)
-  let totalExtrasCalc = 0;
-  datos.forEach(function(d) {
-    const pic = parsear(d.picadas);
-    if (pic <= 0) return;
-    const togAct = d.toggleActivo === true;
-    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
-    totalExtrasCalc += togAct ? Math.max(0, pic - base) : pic;
+  const c = getConfig(), s = sumarHoras(datos, mes), desc = calcularDescuentosMes(mes);
+  const rde = s.bruto * (c.rde / 100), segSocial = s.bruto * (c.segsocial / 100);
+  return Object.assign({}, s, {
+    rde, segSocial, deducciones: rde + segSocial,
+    descuentos: desc.total, descuentosDetalle: desc.detalle,
+    neto: s.bruto - rde - segSocial - desc.total
   });
-  const totalPicada     = totalExtrasCalc * c.picada;
-  const totalExtrasBruto = totalHoras * c.extra;
-  // Descuentos de otros meses que se aplican sobre las HORAS EXTRA de este mes
-  const desc            = calcularDescuentosMes(mes);
-  const totalExtras     = Math.max(0, totalExtrasBruto - desc.total);
-  const totalTonto      = totalPicada + c.base + totalExtras;
-  const rde             = totalTonto * (c.rde       / 100);
-  const segSocial       = totalTonto * (c.segsocial / 100);
-  const deducciones     = rde + segSocial;
-  const neto            = totalTonto - deducciones;
-  return { totalPicadas, totalHoras, totalPicada, totalExtras, totalExtrasBruto, totalTonto, rde, segSocial, deducciones, descuentos: desc.total, descuentosDetalle: desc.detalle, neto };
 }
 
 // ─── RENDER RESUMEN ───
 function renderResumen(datos) {
-  const r = calcular(datos);
-  const c = getConfig();
-  // Extras mostradas arriba: toggleActivo guardado en el dato
-  let totalExtrasPickup = 0;
-  datos.forEach(function(d) {
-    const pic    = parsear(d.picadas);
-    if (pic <= 0) return;
-    const togAct = d.toggleActivo === true;
-    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
-    totalExtrasPickup += togAct ? Math.max(0, pic - base) : pic;
-  });
+  const r = calcular(datos), c = getConfig();
+  const f1 = (n) => n.toFixed(1).replace(/\.0$/, '');
   document.getElementById('resumen-grid').innerHTML =
-    '<div class="r-card"><div class="r-label">Picadas extra</div><div class="r-val c-green">' + totalExtrasPickup.toLocaleString('es') + '</div><div class="r-sub">Total: ' + r.totalPicadas.toLocaleString('es') + ' · ' + fmt(r.totalPicada) + '</div></div>' +
-    '<div class="r-card"><div class="r-label">Horas Extra</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">' + (r.descuentos > 0 ? fmt(r.totalExtrasBruto) + ' − ' + fmt(r.descuentos) + ' = ' + fmt(r.totalExtras) : fmt(r.totalExtras)) + '</div></div>' +
-    '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.totalTonto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
-    '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + datos.filter(d => parsear(d.picadas) > 0 || parsear(d.horas) > 0).length + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
+    '<div class="r-card"><div class="r-label">Horas totales</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">Sem ' + f1(r.h.sem) + ' · Sáb ' + f1(r.h.sab) + ' · Dom ' + f1(r.h.dom) + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.bruto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
+    '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + r.dias + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
+    '<div class="r-card"><div class="r-label">Fin de semana</div><div class="r-val c-orange" style="font-size:18px">' + fmt(r.d.sab + r.d.dom) + '</div><div class="r-sub">Sáb ' + fmt(r.d.sab) + ' · Dom ' + fmt(r.d.dom) + '</div></div>' +
     (r.descuentos > 0 ?
-      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5)"><div class="r-label">📉 Descuento en Horas Extra</div><div class="r-val c-red" style="font-size:22px">-' + fmt(r.descuentos) + '</div><div class="r-sub">' +
+      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5);padding:11px 13px;"><div class="r-label" style="font-size:9px;margin-bottom:3px;">📉 Descuento entre meses</div><div class="r-val c-red" style="font-size:15px">−' + fmt(r.descuentos) + '</div><div class="r-sub" style="font-size:10px;margin-top:2px;">' +
         r.descuentosDetalle.map(function(d) {
           const [oy, om] = d.origen.split('-').map(Number);
-          return d.porcentaje + '% del extra de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
-        }).join(' · ') +
-      '</div></div>' : ''
-    ) +
+          return d.porcentaje + '% del bruto de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
+        }).join(' · ') + '</div></div>' : '') +
     '<div class="r-card full"><div class="r-label">💰 Neto a Cobrar</div><div class="r-val c-green" style="font-size:32px;letter-spacing:-1px">' + fmt(r.neto) + '</div><div class="r-sub">RDE ' + c.rde + '%: ' + fmt(r.rde) + ' · Seg.Social ' + c.segsocial + '%: ' + fmt(r.segSocial) + '</div></div>';
 }
 
 // ─── RENDER DÍAS ───
 function renderDias(datos) {
-  const cont   = document.getElementById('lista-dias');
+  const cont = document.getElementById('lista-dias');
   cont.innerHTML = '';
-  const fechas = getFechas();
-  const hoy    = new Date(); hoy.setHours(0,0,0,0);
+  const fechas = getFechas(), c = getConfig();
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
 
   fechas.forEach((fecha, idx) => {
-    const entrada   = datos.find(x => x.idx === idx) || null;
-    const pic       = entrada ? parsear(entrada.picadas) : 0;
-    const hex       = entrada ? parsear(entrada.horas)   : 0;
-    const nota      = entrada && entrada.nota ? entrada.nota : '';
-    const tieneAlgo = pic > 0 || hex > 0 || nota;
-    const dotCls    = hex > 0 ? 'has-horas' : (pic > 0 || nota) ? 'has-data' : '';
-    const esHoy     = fecha.getTime() === hoy.getTime();
+    const entrada = datos.find(x => x.idx === idx) || null;
+    const hex   = entrada ? parsear(entrada.horas) : 0;
+    const nota  = entrada && entrada.nota ? entrada.nota : '';
+    const tipo  = tipoDia(fecha), precio = c[tipo];
+    const tieneAlgo = !!entrada;
+    const dotCls = hex > 0 ? 'has-horas' : (nota || (entrada && entrada.usuario)) ? 'has-data' : '';
+    const esHoy = fecha.getTime() === hoy.getTime();
 
-    // Card
     const card = document.createElement('div');
     card.className = 'day-card'; card.id = 'card-' + idx;
 
-    // Header
     const hdr = document.createElement('div');
     hdr.className = 'day-header';
     hdr.innerHTML =
@@ -716,49 +636,36 @@ function renderDias(datos) {
       '</div>' +
       '<div class="day-tags">' +
         (entrada && entrada.usuario ? '<span class="tag-usuario">👤 ' + entrada.usuario + '</span>' : '') +
-        (pic > 0 ? '<span class="tag or">' + pic.toLocaleString('es') + ' pic.</span>' : '') +
-        (() => {
-          if (!entrada) return '';
-          const togAct = entrada.toggleActivo === true;
-          if (!togAct) return '';
-          const base = parseInt(entrada.picBase) || 1600;
-          const ext = pic - base;
-          return ext > 0 ? '<span class="tag-extras">+' + ext.toLocaleString('es') + ' ext.</span>' : '';
-        })() +
-        (hex > 0 ? '<span class="tag pu">' + hex + 'h</span>' : '') +
-        (entrada && entrada.nota ? '<span class="nota-preview">📝 ' + entrada.nota + '</span>' : '') +
+        (hex > 0 ? '<span class="tag pu">' + hex + 'h</span><span class="tag-extras">' + fmt(hex * precio) + '</span>' : '') +
+        (nota ? '<span class="nota-preview">📝 ' + nota + '</span>' : '') +
       '</div>' +
       '<span class="chevron" id="chev-' + idx + '">▼</span>';
     hdr.addEventListener('click', () => toggleDia(idx));
 
-    // Formulario
     const form = document.createElement('div');
     form.className = 'day-form'; form.id = 'form-' + idx;
     const grid = document.createElement('div');
     grid.className = 'form-grid';
 
-    function mkInput(labelTxt, tipo, inputId, valor, modo, paso) {
+    function mkInput(labelTxt, tipoI, inputId, valor, modo, paso) {
       const ff = document.createElement('div'); ff.className = 'ff';
       ff.innerHTML = '<label>' + labelTxt + '</label>';
       const inp = document.createElement('input');
-      inp.type = tipo; inp.id = inputId; inp.value = valor || '';
+      inp.type = tipoI; inp.id = inputId; inp.value = valor || '';
       if (modo) inp.inputMode = modo;
       if (paso) inp.step = paso;
-      if (tipo === 'number') inp.min = '0';
-      inp.placeholder = tipo === 'time' ? '--:--' : '0';
+      if (tipoI === 'number') inp.min = '0';
+      inp.placeholder = tipoI === 'time' ? '--:--' : '0';
       ff.appendChild(inp);
       return { ff, inp };
     }
 
-    // Variable nota en memoria para este día
-    let notaActual = entrada && entrada.nota ? entrada.nota : '';
+    const notaActual = nota;
+    const { ff: ffHin,  inp: inHin  } = mkInput('Hora entrada', 'time', 'hin-'  + idx, entrada?.horaEntrada);
+    const { ff: ffHout, inp: inHout } = mkInput('Hora salida',  'time', 'hout-' + idx, entrada?.horaSalida);
+    const { ff: ffHex,  inp: inHex  } = mkInput('Horas trabajadas', 'number', 'hex-' + idx, hex > 0 ? hex : '', 'decimal', '0.25');
+    ffHex.style.gridColumn = '1/-1';
 
-    const { ff: ffHin,  inp: inHin  } = mkInput('Hora entrada', 'time',   'hin-'  + idx, entrada?.horaEntrada);
-    const { ff: ffHout, inp: inHout  } = mkInput('Hora salida',  'time',   'hout-' + idx, entrada?.horaSalida);
-    const { ff: ffPic,  inp: inPic   } = mkInput('Picadas',      'number', 'pic-'  + idx, pic > 0 ? pic : '', 'numeric');
-    const { ff: ffHex,  inp: inHex   } = mkInput('Horas extra',  'number', 'hex-'  + idx, hex > 0 ? hex : '', 'decimal', '0.5');
-
-    // Campo usuario con autocomplete
     const ffUsuario = document.createElement('div');
     ffUsuario.className = 'ff-usuario';
     ffUsuario.innerHTML = '<label>👤 Usuario</label><svg class="user-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
@@ -775,127 +682,31 @@ function renderDias(datos) {
     ffUsuario.appendChild(inUsuario);
     ffUsuario.appendChild(usuSugs);
 
-    // Auto-calcular horas al poner entrada/salida
+    // Caja de ganancia del día (horas × precio del tipo de día)
+    const payBox = document.createElement('div');
+    payBox.className = 'extras-box visible';
+    function actualizarPay() {
+      const hv = parsear(inHex.value);
+      payBox.innerHTML = '<div class="extras-row"><div><div class="extras-label">' + NOMTIPO[tipo] + ' · ' + fmt(precio) + '/h</div><div class="extras-sub">' + hv + ' h × ' + fmt(precio) + '</div></div><div class="extras-val">' + fmt(hv * precio) + '</div></div>';
+    }
+    // Cada vez que cambia entrada/salida, se recalculan las horas
     function autoCalc() {
-      const v1 = inHin.value, v2 = inHout.value;
-      if (!v1 || !v2) return;
-      const [h1,m1] = v1.split(':').map(Number);
-      const [h2,m2] = v2.split(':').map(Number);
-      let min = (h2*60+m2) - (h1*60+m1);
-      if (min < 0) min += 1440;
-      inHex.value = Math.round((min/60)*100)/100;
+      const hv = horasEntre(inHin.value, inHout.value);
+      if (hv === null) return;
+      inHex.value = hv;
       inHex.style.borderColor = 'var(--accent2)';
       setTimeout(() => inHex.style.borderColor = '', 1500);
+      actualizarPay();
     }
-    inHin.addEventListener('change', autoCalc);
-    inHout.addEventListener('change', autoCalc);
+    [inHin, inHout].forEach(i => { i.addEventListener('change', autoCalc); i.addEventListener('input', autoCalc); });
+    inHex.addEventListener('input', actualizarPay);
+    actualizarPay();
 
     grid.appendChild(ffHin); grid.appendChild(ffHout);
-    grid.appendChild(ffPic); grid.appendChild(ffHex);
-    grid.appendChild(ffUsuario);
+    grid.appendChild(ffHex); grid.appendChild(ffUsuario);
     form.appendChild(grid);
+    form.appendChild(payBox);
 
-    // ── PICADAS BASE + EXTRAS ──
-    // ── TOGGLE DESCUENTO ──
-    let descuentoActivo = getDescuento(idx);
-
-    const toggleDesc = document.createElement('div');
-    toggleDesc.className = 'toggle-descuento' + (descuentoActivo ? ' activo' : '');
-    toggleDesc.innerHTML =
-      '<div class="toggle-track' + (descuentoActivo ? ' on' : '') + '" id="track-' + idx + '"><div class="toggle-thumb"></div></div>' +
-      '<div class="toggle-desc-info">' +
-        '<div class="toggle-desc-title">Descontar fijo del día</div>' +
-        '<div class="toggle-desc-sub" id="toggle-sub-' + idx + '">' + (descuentoActivo ? '' : '') + '</div>' +
-      '</div>' +
-      '<span style="font-size:13px;font-weight:800;color:var(--accent3);display:' + (descuentoActivo ? 'block' : 'none') + '" id="toggle-base-lbl-' + idx + '">−' + getPicBase(idx).toLocaleString('es') + '</span>';
-
-    toggleDesc.addEventListener('click', () => {
-      descuentoActivo = !descuentoActivo;
-      setDescuento(idx, descuentoActivo);
-      toggleDesc.classList.toggle('activo', descuentoActivo);
-      const track = document.getElementById('track-' + idx);
-      if (track) track.classList.toggle('on', descuentoActivo);
-      const sub = document.getElementById('toggle-sub-' + idx);
-      if (sub) sub.textContent = descuentoActivo ? '' : '';
-      const baseLbl = document.getElementById('toggle-base-lbl-' + idx);
-      if (baseLbl) baseLbl.style.display = descuentoActivo ? 'block' : 'none';
-      actualizarExtrasBox();
-    });
-    form.appendChild(toggleDesc);
-
-    // ── FIJO EDITABLE ──
-    const picBaseRow = document.createElement('div');
-    picBaseRow.className = 'pic-base-row';
-    picBaseRow.style.display = descuentoActivo ? 'flex' : 'none';
-    picBaseRow.id = 'base-row-' + idx;
-    const picBaseLbl = document.createElement('div');
-    picBaseLbl.className = 'pic-base-label';
-    picBaseLbl.innerHTML = '🎯 Fijo por día';
-    const picBaseVal = document.createElement('span');
-    picBaseVal.className = 'pic-base-val';
-    picBaseVal.textContent = getPicBase(idx).toLocaleString('es');
-    const picBaseInp = document.createElement('input');
-    picBaseInp.className = 'pic-base-input';
-    picBaseInp.type = 'number'; picBaseInp.inputMode = 'numeric';
-    picBaseInp.value = getPicBase(idx); picBaseInp.min = '0';
-    const picBaseEditBtn = document.createElement('button');
-    picBaseEditBtn.className = 'pic-base-edit';
-    picBaseEditBtn.title = 'Editar fijo';
-    picBaseEditBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    let editingBase = false;
-    function aplicarNuevaBase() {
-      const newBase = parseInt(picBaseInp.value) || 1600;
-      setPicBase(idx, newBase);
-      picBaseVal.textContent = newBase.toLocaleString('es');
-      const baseLbl = document.getElementById('toggle-base-lbl-' + idx);
-      if (baseLbl) baseLbl.textContent = '−' + newBase.toLocaleString('es');
-      actualizarExtrasBox();
-    }
-    picBaseEditBtn.addEventListener('click', () => {
-      editingBase = !editingBase;
-      picBaseVal.style.display = editingBase ? 'none' : '';
-      picBaseInp.style.display = editingBase ? 'inline-block' : 'none';
-      if (editingBase) { picBaseInp.focus(); picBaseInp.select(); }
-      else aplicarNuevaBase();
-    });
-    picBaseInp.addEventListener('change', aplicarNuevaBase);
-    picBaseRow.appendChild(picBaseLbl);
-    picBaseRow.appendChild(picBaseVal);
-    picBaseRow.appendChild(picBaseInp);
-    picBaseRow.appendChild(picBaseEditBtn);
-    form.appendChild(picBaseRow);
-
-    // ── CAJA EXTRAS ──
-    const extrasBox = document.createElement('div');
-    extrasBox.className = 'extras-box';
-    extrasBox.id = 'extras-box-' + idx;
-
-    function actualizarExtrasBox() {
-      const baseRow = document.getElementById('base-row-' + idx);
-      if (baseRow) baseRow.style.display = descuentoActivo ? 'flex' : 'none';
-      if (!descuentoActivo) { extrasBox.classList.remove('visible'); return; }
-      const totalPic = parsear(inPic.value);
-      const base     = getPicBase(idx);
-      const extras   = totalPic - base;
-      if (totalPic > 0) {
-        extrasBox.classList.add('visible');
-        extrasBox.innerHTML =
-          '<div class="extras-row">' +
-            '<div><div class="extras-label">Total picadas</div><div class="extras-val">' + totalPic.toLocaleString('es') + '</div></div>' +
-            '<div style="text-align:right"><div class="extras-label">Picadas extra</div>' +
-            '<div class="extras-val" style="color:' + (extras > 0 ? 'var(--accent2)' : 'var(--red)') + '">' + (extras > 0 ? '+' : '') + extras.toLocaleString('es') + '</div></div>' +
-          '</div>' +
-          '<div class="extras-sub">Fijo: ' + base.toLocaleString('es') + ' · ' + (extras > 0 ? extras.toLocaleString('es') + ' picadas extras' : 'Sin extras hoy') + '</div>';
-      } else {
-        extrasBox.classList.remove('visible');
-      }
-    }
-
-    inPic.addEventListener('input', actualizarExtrasBox);
-    actualizarExtrasBox();
-    form.appendChild(extrasBox);
-
-    // Nota: mostrar inline si existe, botón añadir si no
     const notaContainer = document.createElement('div');
     notaContainer.id = 'nota-container-' + idx;
     renderNotaInline(notaContainer, idx, notaActual, fecha);
@@ -905,16 +716,12 @@ function renderDias(datos) {
     btnG.className = 'btn-guardar'; btnG.textContent = 'Guardar';
     btnG.addEventListener('click', () => {
       let datos = getDatos();
-      const p = parsear(inPic.value);
-      const h = parsear(inHex.value);
-      const nota = notaActual;
+      const hv = horasEntre(inHin.value, inHout.value);
+      const h = hv !== null ? hv : parsear(inHex.value);
       const usuario = inUsuario.value.trim();
-      const picBase      = getPicBase(idx);
-      const toggleActivo = getDescuento(idx);
-      const picExtras    = toggleActivo ? Math.max(0, p - picBase) : p; // si no toggle, todas son extras
       datos = datos.filter(x => x.idx !== idx);
-      if (p > 0 || h > 0 || inHin.value || inHout.value || nota || usuario)
-        datos.push({ idx, picadas:p, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota, usuario, picBase, picExtras, toggleActivo });
+      if (h > 0 || inHin.value || inHout.value || notaActual || usuario)
+        datos.push({ idx, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota:notaActual, usuario });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -932,7 +739,6 @@ function renderDias(datos) {
       form.appendChild(btnB);
     }
 
-    // Botón compartir día
     const btnShare = document.createElement('button');
     btnShare.className = 'btn-share-day';
     btnShare.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Compartir este día (imagen)';
@@ -984,8 +790,8 @@ function renderHistorial() {
     if (key.startsWith('th_datos_')) meses.push(key.replace('th_datos_',''));
   }
   meses.sort((a,b) => b.localeCompare(a));
-  if (!meses.length) { cont.innerHTML = '<div class="empty"><div class="ico">📊</div><p>Sin datos aún</p></div>'; return; }
   const c = getConfig();
+  const row = (a, b, cls) => '<div class="hrow"><span>' + a + '</span><span' + (cls ? ' class="' + cls + '"' : '') + '>' + b + '</span></div>';
   let html = '';
   meses.forEach(mk => {
     const datos = JSON.parse(localStorage.getItem('th_datos_' + mk) || '[]');
@@ -999,15 +805,15 @@ function renderHistorial() {
           '<span class="hist-neto">' + fmt(r.neto) + '</span>' +
         '</div>' +
         '<div class="hist-body">' +
-          '<div class="hrow"><span>Picadas</span><span>' + r.totalPicadas.toLocaleString('es') + ' → ' + fmt(r.totalPicada) + '</span></div>' +
-          '<div class="hrow"><span>Horas extra</span><span>' + r.totalHoras.toFixed(1) + 'h → ' + fmt(r.totalExtrasBruto) + '</span></div>' +
-          (r.descuentos > 0 ? '<div class="hrow"><span>Descuento en extra (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')</span><span class="c-red">-' + fmt(r.descuentos) + '</span></div>' : '') +
-          (r.descuentos > 0 ? '<div class="hrow"><span>Extra neto</span><span>' + fmt(r.totalExtras) + '</span></div>' : '') +
-          '<div class="hrow"><span>Sueldo base</span><span>' + fmt(c.base) + '</span></div>' +
-          '<div class="hrow"><span>Bruto</span><span>' + fmt(r.totalTonto) + '</span></div>' +
-          '<div class="hrow"><span>RDE (' + c.rde + '%)</span><span class="c-red">-' + fmt(r.rde) + '</span></div>' +
-          '<div class="hrow"><span>Seg. Social (' + c.segsocial + '%)</span><span class="c-red">-' + fmt(r.segSocial) + '</span></div>' +
-          '<div class="hrow"><span class="bold">Neto a cobrar</span><span class="hl">' + fmt(r.neto) + '</span></div>' +
+          row('Lun-Vie (' + fmt(c.sem) + '/h)', r.h.sem.toFixed(1) + 'h → ' + fmt(r.d.sem)) +
+          row('Sábados (' + fmt(c.sab) + '/h)', r.h.sab.toFixed(1) + 'h → ' + fmt(r.d.sab)) +
+          row('Domingos (' + fmt(c.dom) + '/h)', r.h.dom.toFixed(1) + 'h → ' + fmt(r.d.dom)) +
+          row('Horas totales', r.totalHoras.toFixed(1) + 'h') +
+          row('Bruto', fmt(r.bruto)) +
+          (r.descuentos > 0 ? row('Descuento entre meses (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')', '-' + fmt(r.descuentos), 'c-red') : '') +
+          row('RDE (' + c.rde + '%)', '-' + fmt(r.rde), 'c-red') +
+          row('Seg. Social (' + c.segsocial + '%)', '-' + fmt(r.segSocial), 'c-red') +
+          row('<b>Neto a cobrar</b>', fmt(r.neto), 'hl') +
         '</div>' +
       '</div>';
   });
@@ -1065,9 +871,9 @@ function guardarNota() {
   if (exist) {
     exist.nota = nota;
   } else if (nota) {
-    datos.push({ idx, picadas:0, horas:0, horaEntrada:'', horaSalida:'', nota });
+    datos.push({ idx, horas:0, horaEntrada:'', horaSalida:'', nota });
   }
-  datos = datos.filter(x => x.picadas > 0 || parsear(x.horas) > 0 || x.horaEntrada || x.nota);
+  datos = datos.filter(x => parsear(x.horas) > 0 || x.horaEntrada || x.nota || x.usuario);
   setDatos(datos);
   document.getElementById('nota-modal-bg').classList.remove('open');
   // Update inline container directly without full re-render
@@ -1082,31 +888,12 @@ function guardarNota() {
 }
 
 // ─── COMPARTIR DÍA (JPG) ───
-function getExtrasImgHtml(entrada, pic) {
-  if (!entrada) return '';
-  let descOn = false;
-  for (var k in localStorage) {
-    if (k.indexOf('th_desc_') === 0 && k.endsWith('_' + entrada.idx))
-      descOn = localStorage.getItem(k) === 'on';
-  }
-  if (!descOn) return '';
-  var base = entrada.picBase || 1600;
-  var ext  = pic - base;
-  return ext > 0 ? '<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:3px;">+' + ext.toLocaleString('es') + ' extras</div>' : '';
-}
-
 async function compartirDia(idx, fecha, entrada) {
-  const pic  = entrada ? parsear(entrada.picadas) : 0;
-  const hex  = entrada ? parsear(entrada.horas)   : 0;
+  const hex  = entrada ? parsear(entrada.horas) : 0;
   const nota = entrada && entrada.nota ? entrada.nota : '';
   const hin  = entrada && entrada.horaEntrada ? entrada.horaEntrada : '--:--';
   const hout = entrada && entrada.horaSalida  ? entrada.horaSalida  : '--:--';
-  const c    = getConfig();
-  // Ganancia sobre extras, no sobre total picadas
-  const togActImg  = entrada && entrada.toggleActivo === true;
-  const extImg     = togActImg ? Math.max(0, pic - (parseInt(entrada.picBase) || 1600)) : pic;
-  const gananciaPicadas = extImg * c.picada;
-  const gananciaHoras   = hex * c.extra;
+  const tipo = tipoDia(fecha), precio = getConfig()[tipo], ganancia = hex * precio;
 
   const div = document.getElementById('canvas-dia');
   div.innerHTML = `
@@ -1124,17 +911,8 @@ async function compartirDia(idx, fecha, entrada) {
           <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">SALIDA</div>
           <div style="font-size:18px;font-weight:800;">${hout}</div>
         </div>
-        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">PICADAS</div>
-          <div style="font-size:22px;font-weight:800;color:#f97316;">${pic.toLocaleString('es')}</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaPicadas)}</div>
-          ${getExtrasImgHtml(entrada, pic)}
-        </div>
-        <div style="background:#1a1d27;border-radius:12px;padding:12px;">
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">HORAS EXTRA</div>
-          <div style="font-size:22px;font-weight:800;color:#6c63ff;">${hex} h</div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(gananciaHoras)}</div>
-        </div>
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;"><div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">HORAS</div><div style="font-size:22px;font-weight:800;color:#6c63ff;">${hex} h</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">${NOMTIPO[tipo]}</div></div>
+        <div style="background:#1a1d27;border-radius:12px;padding:12px;"><div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">GANANCIA</div><div style="font-size:22px;font-weight:800;color:#4ade80;">${fmt(ganancia)}</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">${fmt(precio)}/h</div></div>
       </div>
       ${nota ? `<div style="background:#1a1d27;border-radius:12px;padding:12px;margin-bottom:16px;border-left:3px solid #4ade80;"><div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#4ade80;margin-bottom:4px;">📝 NOTA</div><div style="font-size:13px;line-height:1.5;">${nota}</div></div>` : ''}
       <div style="font-size:10px;color:#2a2f45;text-align:center;margin-top:8px;">Generado con Mis Horas</div>
@@ -1174,59 +952,39 @@ function selPdfOpt(op) {
 async function generarPDF() {
   document.getElementById('pdf-modal-bg').classList.remove('open');
   const { jsPDF } = window.jspdf;
-  const doc  = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const datos = getDatos();
-  const r     = calcular(datos);
-  const c     = getConfig();
-  const [y,m] = mesActual.split('-').map(Number);
-  const fechas = getFechas();
-  const completo = pdfOpcion === 'completo';
-
-  // Colores
-  const BG   = [15, 17, 23];
-  const CARD = [26, 29, 39];
-  const ACC  = [108, 99, 255];
-  const GRN  = [74, 222, 128];
-  const ORG  = [249, 115, 22];
-  const TEXT = [226, 232, 240];
-  const MUT  = [100, 116, 139];
-
-  doc.setFillColor(...BG);
-  doc.rect(0, 0, 210, 297, 'F');
-
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const datos = getDatos(), r = calcular(datos), c = getConfig();
+  const [y, m] = mesActual.split('-').map(Number);
+  const fechas = getFechas(), completo = pdfOpcion === 'completo';
+  const BG=[15,17,23], CARD=[26,29,39], ACC=[108,99,255], GRN=[74,222,128], ORG=[249,115,22], TEXT=[226,232,240], MUT=[100,116,139];
+  const f1 = (n) => n.toFixed(1).replace(/\.0$/, '');
+  const pagina = () => { doc.setFillColor(...BG); doc.rect(0, 0, 210, 297, 'F'); };
+  pagina();
   let y2 = 14;
 
-  // Título
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(20); doc.setTextColor(...TEXT);
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...TEXT);
   doc.text('MIS HORAS', 14, y2);
   doc.setFontSize(11); doc.setTextColor(...MUT);
   doc.text(MESES[m-1] + ' ' + y, 14, y2+7);
   doc.setFontSize(9);
   doc.text(completo ? 'Informe completo' : 'Solo actividad', 14, y2+13);
   y2 += 22;
+  doc.setDrawColor(...ACC); doc.setLineWidth(0.5); doc.line(14, y2, 196, y2); y2 += 8;
 
-  // Línea
-  doc.setDrawColor(...ACC); doc.setLineWidth(0.5);
-  doc.line(14, y2, 196, y2); y2 += 8;
-
-  // Resumen
   const cols = completo ? [
-    { label:'PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
-    { label:'BRUTO', val: fmt(r.totalTonto), sub:'', color: TEXT },
-    { label:'NETO A COBRAR', val: fmt(r.neto), sub:'RDE+SS: '+fmt(r.deducciones), color: GRN },
+    { label:'HORAS', val: r.totalHoras.toFixed(1)+' h', sub: r.dias+' días', color: ACC },
+    { label:'BRUTO', val: fmt(r.bruto), sub:'', color: TEXT },
+    { label:'DEDUCCIONES', val: fmt(r.deducciones + r.descuentos), sub:'RDE + SS' + (r.descuentos > 0 ? ' + desc.' : ''), color: ORG },
+    { label:'NETO A COBRAR', val: fmt(r.neto), sub:'', color: GRN },
   ] : [
-    { label:'TOTAL PICADAS', val: r.totalPicadas.toLocaleString('es'), sub: fmt(r.totalPicada), color: ORG },
-    { label:'HORAS EXTRA', val: r.totalHoras.toFixed(1)+' h', sub: fmt(r.totalExtras), color: ACC },
-    { label:'DÍAS TRABAJADOS', val: datos.filter(d=>parsear(d.picadas)>0||parsear(d.horas)>0).length+'', sub:'', color: GRN },
+    { label:'TOTAL HORAS', val: r.totalHoras.toFixed(1)+' h', sub:'', color: ACC },
+    { label:'DÍAS TRABAJADOS', val: String(r.dias), sub:'', color: GRN },
+    { label:'HORAS FINDE', val: f1(r.h.sab + r.h.dom)+' h', sub:'Sáb '+f1(r.h.sab)+'h · Dom '+f1(r.h.dom)+'h', color: ORG },
   ];
-
   const cw = completo ? 43.5 : 58;
   cols.forEach((col, i) => {
     const x = 14 + i * (cw + 3);
-    doc.setFillColor(...CARD);
-    doc.roundedRect(x, y2, cw, 22, 2, 2, 'F');
+    doc.setFillColor(...CARD); doc.roundedRect(x, y2, cw, 22, 2, 2, 'F');
     doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
     doc.text(col.label, x+3, y2+6);
     doc.setFontSize(11); doc.setTextColor(...col.color);
@@ -1235,162 +993,58 @@ async function generarPDF() {
   });
   y2 += 30;
 
-  // Orden: DÍA | FECHA | USUARIO | ENTRADA | SALIDA | PICADAS | EXTRAS | H.EXT | GANANCIA | NOTA
-  const COL = {
-    dia:      14,
-    fecha:    24,
-    usuario:  40,
-    entrada:  95,
-    salida:   110,
-    picadas:  124,
-    extras:   137,
-    hextra:   150,
-    ganancia: completo ? 162 : null,
-    nota:     completo ? 176 : 162,
+  const COL = { dia:14, fecha:24, usuario:40, entrada:78, salida:94, horas:110,
+                precio: completo ? 124 : null, ganancia: completo ? 142 : null, nota: completo ? 164 : 128 };
+  const cabecera = () => {
+    doc.setFontSize(6.5); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
+    [['DÍA','dia'],['FECHA','fecha'],['USUARIO','usuario'],['ENTRADA','entrada'],['SALIDA','salida'],['HORAS','horas']].forEach(([tx, k]) => doc.text(tx, COL[k], y2));
+    if (completo) { doc.text('€/H', COL.precio, y2); doc.text('GANANCIA', COL.ganancia, y2); }
+    doc.text('NOTA', COL.nota, y2);
+    y2 += 4; doc.setDrawColor(...ACC); doc.setLineWidth(0.3); doc.line(14, y2, 196, y2); y2 += 4;
   };
-
-  // Cabecera tabla
-  doc.setFontSize(6.5); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
-  doc.text('DÍA',     COL.dia,      y2);
-  doc.text('FECHA',   COL.fecha,    y2);
-  doc.text('USUARIO', COL.usuario,  y2);
-  doc.text('ENTRADA', COL.entrada,  y2);
-  doc.text('SALIDA',  COL.salida,   y2);
-  doc.text('PICADAS', COL.picadas,  y2);
-  doc.text('EXTRAS',  COL.extras,   y2);
-  doc.text('H.EXT',   COL.hextra,   y2);
-  if (completo) doc.text('GANANCIA', COL.ganancia, y2);
-  doc.text('NOTA',    COL.nota,     y2);
-  y2 += 4;
-  doc.setDrawColor(...ACC); doc.setLineWidth(0.3);
-  doc.line(14, y2, 196, y2); y2 += 4;
+  cabecera();
 
   fechas.forEach((fecha, idx) => {
-    const entrada  = datos.find(x => x.idx === idx) || null;
-    const pic      = entrada ? parsear(entrada.picadas) : 0;
-    const hex      = entrada ? parsear(entrada.horas)   : 0;
-    const nota     = entrada && entrada.nota    ? entrada.nota    : '';
-    const usuario  = entrada && entrada.usuario ? entrada.usuario : '';
-    // Ganancia: usar extras no el total de picadas
-    const togActGan = entrada && entrada.toggleActivo === true;
-    const extGan    = togActGan ? Math.max(0, pic - (entrada.picBase || 1600)) : pic;
-    const gan       = extGan * c.picada + hex * c.extra;
-    const tieneAlgo = pic > 0 || hex > 0 || nota || usuario;
-
-    if (y2 > 272) {
-      doc.addPage();
-      doc.setFillColor(...BG); doc.rect(0,0,210,297,'F');
-      y2 = 14;
-      // Repetir cabecera
-      doc.setFontSize(7); doc.setTextColor(...MUT); doc.setFont('helvetica','bold');
-      doc.text('DÍA', COL.dia, y2); doc.text('FECHA', COL.fecha, y2);
-      doc.text('USUARIO', COL.usuario, y2); doc.text('ENTRADA', COL.entrada, y2);
-      doc.text('SALIDA', COL.salida, y2); doc.text('PICADAS', COL.picadas, y2);
-      doc.text('EXTRAS', COL.extras, y2); doc.text('H.EXT', COL.hextra, y2);
-      if (completo) doc.text('GANANCIA', COL.ganancia, y2);
-      doc.text('NOTA', COL.nota, y2);
-      y2 += 4; doc.setDrawColor(...ACC); doc.line(14, y2, 196, y2); y2 += 4;
-    }
-
-    // Fondo fila si tiene datos
-    if (tieneAlgo) {
-      doc.setFillColor(...CARD);
-      doc.rect(14, y2-3, 182, 8, 'F');
-    }
-
-    const rowColor = tieneAlgo ? TEXT : MUT;
-    doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(...rowColor);
-
-    // DÍA y FECHA
-    doc.setTextColor(...rowColor); doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
-    doc.text(DIAS[fecha.getDay()].slice(0,3), COL.dia, y2+2);
-    doc.text(fecha.getDate()+'/'+String(fecha.getMonth()+1).padStart(2,'0'), COL.fecha, y2+2);
-
-    // USUARIO (3ª columna, destacado en morado)
-    if (usuario) {
-      doc.setTextColor(...ACC); doc.setFont('helvetica','bold');
-      const uShort = usuario.length > 25 ? usuario.slice(0,25)+'…' : usuario;
-      doc.text(uShort, COL.usuario, y2+2);
-    } else {
-      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
-      doc.text('-', COL.usuario, y2+2);
-    }
-
-    // ENTRADA y SALIDA
-    doc.setTextColor(...rowColor); doc.setFont('helvetica', tieneAlgo ? 'bold' : 'normal');
-    doc.text(entrada?.horaEntrada || '-', COL.entrada, y2+2);
-    doc.text(entrada?.horaSalida  || '-', COL.salida,  y2+2);
-
-    // PICADAS — siempre muestra el total
-    if (pic > 0) {
-      doc.setTextColor(...ORG); doc.setFont('helvetica','bold');
-      doc.text(pic.toLocaleString('es'), COL.picadas, y2+2);
-    } else {
-      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
-      doc.text('-', COL.picadas, y2+2);
-    }
-
-    // EXTRAS — sin toggle: todas las picadas; con toggle: solo excedente del fijo
-    if (pic > 0) {
-      const togAct = entrada && entrada.toggleActivo === true;
-      const extVal = togAct ? Math.max(0, pic - (entrada.picBase || 1600)) : pic;
-      doc.setTextColor(...GRN); doc.setFont('helvetica','bold');
-      doc.text(extVal.toLocaleString('es'), COL.extras, y2+2);
-    } else {
-      doc.setTextColor(...MUT); doc.setFont('helvetica','normal');
-      doc.text('-', COL.extras, y2+2);
-    }
-
-    // H.EXTRA
-    if (hex > 0) { doc.setTextColor(...ACC); doc.setFont('helvetica','bold'); doc.text(hex+'h', COL.hextra, y2+2); }
-    else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.hextra, y2+2); }
-
-    // GANANCIA
+    const e = datos.find(x => x.idx === idx) || null;
+    const hex = e ? parsear(e.horas) : 0;
+    const nota = e && e.nota ? e.nota : '', usuario = e && e.usuario ? e.usuario : '';
+    const precio = c[tipoDia(fecha)], tieneAlgo = !!e;
+    if (y2 > 272) { doc.addPage(); pagina(); y2 = 14; cabecera(); }
+    if (tieneAlgo) { doc.setFillColor(...CARD); doc.rect(14, y2-3, 182, 8, 'F'); }
+    const put = (txt, x, color, bold, size) => {
+      doc.setTextColor(...color); doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size || 7.5);
+      doc.text(String(txt), x, y2+2);
+    };
+    const rc = tieneAlgo ? TEXT : MUT;
+    put(DIAS[fecha.getDay()].slice(0,3), COL.dia, rc, tieneAlgo);
+    put(fecha.getDate() + '/' + String(fecha.getMonth()+1).padStart(2,'0'), COL.fecha, rc, tieneAlgo);
+    if (usuario) put(usuario.length > 20 ? usuario.slice(0,20)+'…' : usuario, COL.usuario, ACC, true);
+    else put('-', COL.usuario, MUT, false);
+    put((e && e.horaEntrada) || '-', COL.entrada, rc, tieneAlgo);
+    put((e && e.horaSalida)  || '-', COL.salida,  rc, tieneAlgo);
+    if (hex > 0) put(f1(hex) + 'h', COL.horas, ACC, true); else put('-', COL.horas, MUT, false);
     if (completo) {
-      if (gan > 0) { doc.setTextColor(...GRN); doc.setFont('helvetica','bold'); doc.text(fmt(gan), COL.ganancia, y2+2); }
-      else { doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.text('-', COL.ganancia, y2+2); }
+      put(hex > 0 ? fmt(precio) : '-', COL.precio, MUT, false);
+      if (hex > 0) put(fmt(hex * precio), COL.ganancia, GRN, true); else put('-', COL.ganancia, MUT, false);
     }
-
-    // NOTA
-    if (nota) {
-      doc.setTextColor(...MUT); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-      const nShort = nota.length > 16 ? nota.slice(0,16)+'…' : nota;
-      doc.text(nShort, COL.nota, y2+2);
-    }
-
+    if (nota) put(nota.length > 16 ? nota.slice(0,16)+'…' : nota, COL.nota, MUT, false, 6.5);
     y2 += 8;
-    doc.setDrawColor(26,29,39); doc.setLineWidth(0.2);
-    doc.line(14, y2-1, 196, y2-1);
+    doc.setDrawColor(26,29,39); doc.setLineWidth(0.2); doc.line(14, y2-1, 196, y2-1);
   });
 
-  // Totales al pie
   y2 += 4;
   doc.setDrawColor(...ACC); doc.setLineWidth(0.4); doc.line(14, y2, 196, y2); y2 += 6;
-  // Extras PDF: sin toggle = todas las picadas; con toggle = excedente del fijo
-  const totalExtPDF = datos.reduce((s, d) => {
-    const pic    = parsear(d.picadas);
-    if (pic <= 0) return s;
-    const togAct = d.toggleActivo === true;
-    const base   = togAct ? (parseInt(d.picBase) || 1600) : 0;
-    const ext    = togAct ? Math.max(0, pic - base) : pic;
-    return s + ext;
-  }, 0);
-  const gananciaExtPDF = totalExtPDF * c.picada;
-  const gananciaHorasPDF = r.totalExtras; // ya incluye el descuento aplicado del mes elegido
-  const gananciaTotalPDF = gananciaExtPDF + gananciaHorasPDF;
-
   doc.setFontSize(8); doc.setFont('helvetica','bold');
-  doc.setTextColor(...ORG); doc.text('Total picadas: ' + r.totalPicadas.toLocaleString('es'), 14, y2);
-  doc.setTextColor(...GRN); doc.text('Extras: ' + totalExtPDF.toLocaleString('es') + ' (' + fmt(gananciaExtPDF) + ')', 70, y2);
-  doc.setTextColor(...ACC); doc.text('H.Extra: ' + r.totalHoras.toFixed(1) + 'h (' + fmt(gananciaHorasPDF) + ')', 140, y2);
+  [['Semana','sem',ORG,14],['Sábado','sab',ACC,78],['Domingo','dom',GRN,140]].forEach(([n, k, col, x]) => {
+    doc.setTextColor(...col);
+    doc.text(n + ': ' + f1(r.h[k]) + 'h' + (completo ? ' (' + fmt(r.d[k]) + ')' : ''), x, y2);
+  });
   y2 += 6;
-  doc.setTextColor(...GRN); doc.setFontSize(9);
-  doc.text('Total ganado extras: ' + fmt(gananciaTotalPDF), 14, y2);
+  doc.setTextColor(...TEXT); doc.setFontSize(9);
+  doc.text('Total horas: ' + r.totalHoras.toFixed(1) + 'h', 14, y2);
   if (completo) {
-    doc.setTextColor(...MUT); doc.setFontSize(8);
-    doc.text('Neto a cobrar: ' + fmt(r.neto), 110, y2);
+    doc.setTextColor(...GRN); doc.text('Bruto: ' + fmt(r.bruto), 70, y2);
+    doc.setTextColor(...MUT); doc.setFontSize(8); doc.text('Neto a cobrar: ' + fmt(r.neto), 130, y2);
   }
   if (completo && r.descuentos > 0) {
     y2 += 6;
@@ -1399,10 +1053,8 @@ async function generarPDF() {
       const [oy, om] = d.origen.split('-').map(Number);
       return d.porcentaje + '% de ' + MESES[om-1].slice(0,3) + ' ' + oy;
     }).join(', ');
-    doc.text('Descuento en H.Extra: -' + fmt(r.descuentos) + ' (' + detalleDesc + ') · Bruto extra: ' + fmt(r.totalExtrasBruto), 14, y2);
+    doc.text('Descuento entre meses: -' + fmt(r.descuentos) + ' (' + detalleDesc + ')', 14, y2);
   }
-
-  // Footer
   doc.setFontSize(7); doc.setTextColor(...MUT);
   doc.text('Generado con Mis Horas · ' + new Date().toLocaleDateString('es'), 14, 290);
 
@@ -1491,7 +1143,7 @@ function renderReglasDescuento() {
   }
   const ordenadas = reglas.slice().sort((a, b) => b.destino.localeCompare(a.destino));
   cont.innerHTML = ordenadas.map(function(r) {
-    const monto = calcularExtrasHorasMes(r.origen) * (parsear(r.porcentaje) / 100);
+    const monto = calcularBrutoMes(r.origen) * (parsear(r.porcentaje) / 100);
     const [oy, om] = r.origen.split('-').map(Number);
     const [dy, dm] = r.destino.split('-').map(Number);
     return '<div class="desc-rule">' +
@@ -1499,7 +1151,7 @@ function renderReglasDescuento() {
         '<span class="desc-rule-title">' + MESES[om-1] + ' ' + oy + ' → ' + MESES[dm-1] + ' ' + dy + '</span>' +
         '<span class="desc-rule-monto">-' + fmt(monto) + '</span>' +
       '</div>' +
-      '<div class="desc-rule-sub">' + r.porcentaje + '% del extra de ' + MESES[om-1] + ' ' + oy + ', descontado del neto de ' + MESES[dm-1] + ' ' + dy + '</div>' +
+      '<div class="desc-rule-sub">' + r.porcentaje + '% de lo ganado por horas (bruto) de ' + MESES[om-1] + ' ' + oy + ', descontado del neto de ' + MESES[dm-1] + ' ' + dy + '</div>' +
       '<button class="desc-rule-del" onclick="eliminarReglaDescuento(\'' + r.id + '\')">🗑 Eliminar</button>' +
     '</div>';
   }).join('');
@@ -1538,7 +1190,6 @@ function mostrarSugsUsuario(input, panel) {
 }
 
 // ─── INIT ───
-mostrarSplash();
 cargarConfig();
 const hoyInit = new Date();
 mesActual = hoyInit.getFullYear() + '-' + String(hoyInit.getMonth()+1).padStart(2,'0');
