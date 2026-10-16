@@ -88,6 +88,15 @@
   .ff input:focus{border-color:var(--accent);}
   .btn-guardar{width:100%;margin-top:12px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-guardar:active{opacity:0.8;}
+  .desc-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;user-select:none;transition:border-color 0.2s,background 0.2s;}
+  .desc-row.on{border-color:var(--accent3);background:rgba(249,115,22,0.08);}
+  .desc-row .desc-txt{flex:1;font-size:13px;font-weight:700;color:var(--muted2);}
+  .desc-row.on .desc-txt{color:var(--accent3);}
+  .desc-row .desc-sub{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px;}
+  .desc-sw{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;flex-shrink:0;transition:background 0.2s;}
+  .desc-sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;}
+  .desc-row.on .desc-sw{background:var(--accent3);}
+  .desc-row.on .desc-sw::after{transform:translateX(18px);}
   .btn-borrar{width:100%;margin-top:8px;background:transparent;color:var(--red);border:1.5px solid rgba(244,63,94,0.3);border-radius:14px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;}
 
   /* DIAS ADJUSTER */
@@ -488,11 +497,13 @@ function cargarConfig() {
   for (const k in CFG_IDS) if (c[k] != null) document.getElementById(CFG_IDS[k]).value = c[k];
 }
 const tipoDia = (f) => f.getDay() === 6 ? 'sab' : f.getDay() === 0 ? 'dom' : 'sem';
-function horasEntre(hin, hout) {
+const DESCANSO_MIN = 30; // minutos de comida que no se cobran
+function horasEntre(hin, hout, descMin) {
   if (!hin || !hout) return null;
   const [h1, m1] = hin.split(':').map(Number), [h2, m2] = hout.split(':').map(Number);
   let min = (h2 * 60 + m2) - (h1 * 60 + m1);
   if (min < 0) min += 1440;
+  min = Math.max(0, min - (descMin || 0));
   return Math.round(min / 60 * 100) / 100;
 }
 // Suma de horas y dinero por tipo de día (cada día usa su precio: Lun-Vie / Sábado / Domingo)
@@ -661,6 +672,15 @@ function renderDias(datos) {
     }
 
     const notaActual = nota;
+    // Descanso de comida: días nuevos arrancan activado; días ya guardados sin el campo quedan como estaban (sin descuento)
+    let descActivo = (entrada && (entrada.horaEntrada || entrada.horaSalida)) ? !!entrada.descanso : true;
+    const descRow = document.createElement('div');
+    descRow.className = 'desc-row' + (descActivo ? ' on' : '');
+    function pintarDesc() {
+      descRow.classList.toggle('on', descActivo);
+      descRow.innerHTML = '<div class="desc-txt">🍽️ Descontar ' + DESCANSO_MIN + ' min de comida<span class="desc-sub">' + (descActivo ? 'No se cobran' : 'Se cuenta todo el tiempo') + '</span></div><div class="desc-sw"></div>';
+    }
+    pintarDesc();
     const { ff: ffHin,  inp: inHin  } = mkInput('Hora entrada', 'time', 'hin-'  + idx, entrada?.horaEntrada);
     const { ff: ffHout, inp: inHout } = mkInput('Hora salida',  'time', 'hout-' + idx, entrada?.horaSalida);
     const { ff: ffHex,  inp: inHex  } = mkInput('Horas trabajadas', 'number', 'hex-' + idx, hex > 0 ? hex : '', 'decimal', '0.25');
@@ -691,7 +711,7 @@ function renderDias(datos) {
     }
     // Cada vez que cambia entrada/salida, se recalculan las horas
     function autoCalc() {
-      const hv = horasEntre(inHin.value, inHout.value);
+      const hv = horasEntre(inHin.value, inHout.value, descActivo ? DESCANSO_MIN : 0);
       if (hv === null) return;
       inHex.value = hv;
       inHex.style.borderColor = 'var(--accent2)';
@@ -700,9 +720,11 @@ function renderDias(datos) {
     }
     [inHin, inHout].forEach(i => { i.addEventListener('change', autoCalc); i.addEventListener('input', autoCalc); });
     inHex.addEventListener('input', actualizarPay);
+    descRow.addEventListener('click', () => { descActivo = !descActivo; pintarDesc(); autoCalc(); });
     actualizarPay();
 
     grid.appendChild(ffHin); grid.appendChild(ffHout);
+    grid.appendChild(descRow);
     grid.appendChild(ffHex); grid.appendChild(ffUsuario);
     form.appendChild(grid);
     form.appendChild(payBox);
@@ -716,12 +738,12 @@ function renderDias(datos) {
     btnG.className = 'btn-guardar'; btnG.textContent = 'Guardar';
     btnG.addEventListener('click', () => {
       let datos = getDatos();
-      const hv = horasEntre(inHin.value, inHout.value);
+      const hv = horasEntre(inHin.value, inHout.value, descActivo ? DESCANSO_MIN : 0);
       const h = hv !== null ? hv : parsear(inHex.value);
       const usuario = inUsuario.value.trim();
       datos = datos.filter(x => x.idx !== idx);
       if (h > 0 || inHin.value || inHout.value || notaActual || usuario)
-        datos.push({ idx, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota:notaActual, usuario });
+        datos.push({ idx, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota:notaActual, usuario, descanso:descActivo });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
