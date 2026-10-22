@@ -10,42 +10,71 @@
 <title>Mis Horas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var AJ_KEY='th_ajustes';
+function getAjustes(){
+  var a={tema:'dark',fs:1};
+  try{var s=JSON.parse(localStorage.getItem(AJ_KEY)||'{}');
+    if(s.tema==='light'||s.tema==='dark')a.tema=s.tema;
+    if(typeof s.fs==='number'&&s.fs>=0.8&&s.fs<=1.5)a.fs=s.fs;}catch(e){}
+  return a;
+}
+function aplicarAjustes(a){
+  var r=document.documentElement;
+  r.setAttribute('data-theme',a.tema);
+  r.style.setProperty('--fs',a.fs);
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.setAttribute('content',a.tema==='light'?'#f1f5f9':'#0f1117');
+}
+aplicarAjustes(getAjustes());
+</script>
 <style>
   :root {
     --bg:#0f1117;--card:#1a1d27;--card2:#21253a;--border:#2a2f45;
     --accent:#6c63ff;--accent2:#4ade80;--accent3:#f97316;--red:#f43f5e;
     --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;--radius:16px;
+    --line-soft:rgba(255,255,255,.04);--hover:rgba(255,255,255,0.03);
+    --card-full:linear-gradient(135deg,#1e1b4b 0%,#1a1d27 100%);
+    --safe-top-bg:#1a1d27;--fs:1;color-scheme:dark;
     --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  :root[data-theme="light"] {
+    --bg:#f1f5f9;--card:#ffffff;--card2:#eef2f7;--border:#d9e0ea;
+    --accent:#5b52f0;--accent2:#16a34a;--accent3:#ea580c;--red:#e11d48;
+    --text:#0f172a;--muted:#64748b;--muted2:#475569;
+    --line-soft:rgba(0,0,0,0.06);--hover:rgba(0,0,0,0.04);
+    --card-full:linear-gradient(135deg,#e0e7ff 0%,#ffffff 100%);
+    --safe-top-bg:#0f1117;color-scheme:light;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;overflow:hidden;}
   body{font-family:-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:430px;margin:0 auto;}
-  .safe-top{height:var(--safe-top);background:var(--card);flex-shrink:0;}
+  .safe-top{height:var(--safe-top);background:var(--safe-top-bg);flex-shrink:0;}
 
   /* HEADER */
   .header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px 12px;flex-shrink:0;}
   .header-top{display:flex;justify-content:space-between;align-items:center;}
-  .header h1{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+  .header h1{font-size:calc(22px * var(--fs));font-weight:800;letter-spacing:-0.5px;}
   .header h1 span{color:var(--accent);}
   .icon-btn{background:var(--card2);border:none;color:var(--muted2);width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .month-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
-  .month-row button{background:var(--card2);border:none;color:var(--text);width:34px;height:34px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .month-row button{background:var(--card2);border:none;color:var(--text);width:34px;height:34px;border-radius:10px;font-size:calc(18px * var(--fs));cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .month-row button:active{opacity:0.6;}
-  .month-label-btn{flex:1;text-align:center;font-size:16px;font-weight:800;cursor:pointer;color:var(--text);background:none;border:none;font-family:-apple-system,sans-serif;}
+  .month-label-btn{flex:1;text-align:center;font-size:calc(16px * var(--fs));font-weight:800;cursor:pointer;color:var(--text);background:none;border:none;font-family:-apple-system,sans-serif;}
 
   /* INICIO ROW */
   .inicio-row{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
-  .inicio-label{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;}
-  .inicio-date-btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:-apple-system,sans-serif;flex:1;text-align:center;}
+  .inicio-label{font-size:calc(11px * var(--fs));font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;}
+  .inicio-date-btn{background:var(--accent);color:white;border:none;border-radius:10px;padding:7px 14px;font-size:calc(12px * var(--fs));font-weight:800;cursor:pointer;font-family:-apple-system,sans-serif;flex:1;text-align:center;}
   .inicio-date-btn:active{opacity:0.8;}
-  .inicio-info{font-size:11px;color:var(--muted);white-space:nowrap;}
+  .inicio-info{font-size:calc(11px * var(--fs));color:var(--muted);white-space:nowrap;}
 
   /* CONFIG */
   .config-bar{background:rgba(108,99,255,0.07);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
   .config-bar::-webkit-scrollbar{display:none;}
   .cfg-item{flex-shrink:0;}
-  .cfg-item label{display:block;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
-  .cfg-item input{background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;font-weight:700;font-family:-apple-system,sans-serif;padding:5px 8px;border-radius:8px;width:88px;text-align:center;-webkit-appearance:none;}
+  .cfg-item label{display:block;font-size:calc(9px * var(--fs));font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+  .cfg-item input{background:var(--card);border:1px solid var(--border);color:var(--text);font-size:calc(14px * var(--fs));font-weight:700;font-family:-apple-system,sans-serif;padding:5px 8px;border-radius:8px;width:88px;text-align:center;-webkit-appearance:none;}
 
   /* SCROLL */
   .scroll-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(80px + var(--safe-bottom));}
@@ -54,65 +83,56 @@
   .resumen{padding:14px 16px 0;}
   .resumen-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .r-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
-  .r-card.full{grid-column:1/-1;background:linear-gradient(135deg,#1e1b4b 0%,#1a1d27 100%);border-color:rgba(108,99,255,0.5);}
-  .r-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;}
-  .r-val{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
-  .r-sub{font-size:11px;color:var(--muted2);margin-top:3px;line-height:1.4;}
+  .r-card.full{grid-column:1/-1;background:var(--card-full);border-color:rgba(108,99,255,0.5);}
+  .r-label{font-size:calc(10px * var(--fs));font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;}
+  .r-val{font-size:calc(22px * var(--fs));font-weight:800;letter-spacing:-0.5px;}
+  .r-sub{font-size:calc(11px * var(--fs));color:var(--muted2);margin-top:3px;line-height:1.4;}
   .c-green{color:var(--accent2);}.c-purple{color:var(--accent);}.c-orange{color:var(--accent3);}.c-red{color:var(--red);}
 
   /* SECTION */
   .section{padding:14px 16px 0;}
-  .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
-  .btn-hoy{background:var(--accent);color:white;border:none;border-radius:10px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .sec-title{font-size:calc(11px * var(--fs));font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .btn-hoy{background:var(--accent);color:white;border:none;border-radius:10px;padding:5px 14px;font-size:calc(12px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
 
   /* DAY CARDS */
   .day-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
   .day-header{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;user-select:none;-webkit-user-select:none;}
-  .day-header:active{background:rgba(255,255,255,0.03);}
+  .day-header:active{background:var(--hover);}
   .day-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;}
   .day-dot.has-data{background:var(--accent2);}
   .day-dot.has-horas{background:var(--accent);box-shadow:0 0 6px var(--accent);}
   .day-info{flex:1;min-width:0;}
-  .day-name{font-size:14px;font-weight:700;}
-  .day-date{font-size:11px;color:var(--muted);margin-top:1px;}
+  .day-name{font-size:calc(14px * var(--fs));font-weight:700;}
+  .day-date{font-size:calc(11px * var(--fs));color:var(--muted);margin-top:1px;}
   .day-tags{display:flex;gap:6px;flex-wrap:wrap;}
-  .tag{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;background:var(--card2);}
+  .tag{border-radius:6px;padding:2px 8px;font-size:calc(11px * var(--fs));font-weight:700;background:var(--card2);}
   .tag.or{color:var(--accent3);}.tag.pu{color:var(--accent);}
-  .chevron{color:var(--muted);font-size:11px;transition:transform 0.2s;flex-shrink:0;}
+  .chevron{color:var(--muted);font-size:calc(11px * var(--fs));transition:transform 0.2s;flex-shrink:0;}
   .chevron.open{transform:rotate(180deg);}
   .day-form{border-top:1px solid var(--border);padding:14px;display:none;}
   .day-form.open{display:block;}
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .ff label{display:block;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .ff input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:16px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
+  .ff label{display:block;font-size:calc(10px * var(--fs));font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .ff input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:calc(16px * var(--fs));font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
   .ff input:focus{border-color:var(--accent);}
-  .btn-guardar{width:100%;margin-top:12px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-guardar{width:100%;margin-top:12px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:calc(16px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-guardar:active{opacity:0.8;}
-  .desc-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer;user-select:none;transition:border-color 0.2s,background 0.2s;}
-  .desc-row.on{border-color:var(--accent3);background:rgba(249,115,22,0.08);}
-  .desc-row .desc-txt{flex:1;font-size:13px;font-weight:700;color:var(--muted2);}
-  .desc-row.on .desc-txt{color:var(--accent3);}
-  .desc-row .desc-sub{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px;}
-  .desc-sw{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;flex-shrink:0;transition:background 0.2s;}
-  .desc-sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;}
-  .desc-row.on .desc-sw{background:var(--accent3);}
-  .desc-row.on .desc-sw::after{transform:translateX(18px);}
-  .btn-borrar{width:100%;margin-top:8px;background:transparent;color:var(--red);border:1.5px solid rgba(244,63,94,0.3);border-radius:14px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-borrar{width:100%;margin-top:8px;background:transparent;color:var(--red);border:1.5px solid rgba(244,63,94,0.3);border-radius:14px;padding:10px;font-size:calc(14px * var(--fs));font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;}
 
   /* DIAS ADJUSTER */
   .dias-adjuster{margin:16px 16px 0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-  .dias-adjuster-info .title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:2px;}
-  .dias-adjuster-info .val{font-size:22px;font-weight:800;}
-  .dias-adjuster-info .val span{font-size:13px;font-weight:500;color:var(--muted2);margin-left:4px;}
+  .dias-adjuster-info .title{font-size:calc(10px * var(--fs));font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:2px;}
+  .dias-adjuster-info .val{font-size:calc(22px * var(--fs));font-weight:800;}
+  .dias-adjuster-info .val span{font-size:calc(13px * var(--fs));font-weight:500;color:var(--muted2);margin-left:4px;}
   .dias-btns-row{display:flex;gap:8px;}
-  .dias-btn{width:44px;height:44px;border-radius:12px;border:none;cursor:pointer;font-size:24px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:-apple-system,sans-serif;}
+  .dias-btn{width:44px;height:44px;border-radius:12px;border:none;cursor:pointer;font-size:calc(24px * var(--fs));font-weight:700;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:-apple-system,sans-serif;}
   .dias-btn.minus{background:rgba(244,63,94,0.12);color:var(--red);}
   .dias-btn.plus{background:rgba(108,99,255,0.15);color:var(--accent);}
   .dias-btn:active{opacity:0.6;transform:scale(0.93);}
 
   /* BOTTOM NAV */
   .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:var(--safe-bottom);}
-  .nav-btn{flex:1;padding:10px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-family:-apple-system,sans-serif;font-size:10px;font-weight:600;cursor:pointer;}
+  .nav-btn{flex:1;padding:10px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-family:-apple-system,sans-serif;font-size:calc(10px * var(--fs));font-weight:600;cursor:pointer;}
   .nav-btn.active{color:var(--accent);}
   .nav-btn svg{width:24px;height:24px;}
 
@@ -122,11 +142,11 @@
   /* HISTORIAL */
   .hist-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
   .hist-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
-  .hist-head h3{font-size:15px;font-weight:800;}
-  .hist-neto{color:var(--accent2);font-weight:800;font-size:15px;}
+  .hist-head h3{font-size:calc(15px * var(--fs));font-weight:800;}
+  .hist-neto{color:var(--accent2);font-weight:800;font-size:calc(15px * var(--fs));}
   .hist-body{border-top:1px solid var(--border);padding:4px 16px 14px;display:none;}
   .hist-body.open{display:block;}
-  .hrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;}
+  .hrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:calc(13px * var(--fs));}
   .hrow:last-child{border-bottom:none;}
   .hrow .hl{color:var(--accent2);font-weight:800;}
 
@@ -136,15 +156,15 @@
   .sheet{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px calc(20px + var(--safe-bottom));width:100%;max-width:430px;animation:slideUp 0.3s cubic-bezier(.32,.72,0,1);}
   @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
   .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
-  .sheet h3{font-size:17px;font-weight:800;margin-bottom:6px;}
-  .sheet p{font-size:12px;color:var(--muted2);margin-bottom:16px;}
-  .date-input-big{width:100%;background:var(--bg);border:2px solid var(--accent);border-radius:14px;color:var(--text);font-size:20px;font-weight:700;font-family:-apple-system,sans-serif;padding:14px 16px;outline:none;-webkit-appearance:none;margin-bottom:14px;}
-  .btn-confirmar{width:100%;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .sheet h3{font-size:calc(17px * var(--fs));font-weight:800;margin-bottom:6px;}
+  .sheet p{font-size:calc(12px * var(--fs));color:var(--muted2);margin-bottom:16px;}
+  .date-input-big{width:100%;background:var(--bg);border:2px solid var(--accent);border-radius:14px;color:var(--text);font-size:calc(20px * var(--fs));font-weight:700;font-family:-apple-system,sans-serif;padding:14px 16px;outline:none;-webkit-appearance:none;margin-bottom:14px;}
+  .btn-confirmar{width:100%;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:calc(16px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-confirmar:active{opacity:0.8;}
   .empty{text-align:center;padding:50px 20px;color:var(--muted);}
-  .empty .ico{font-size:48px;margin-bottom:14px;}
+  .empty .ico{font-size:calc(48px * var(--fs));margin-bottom:14px;}
   /* SHARE BTN DÍA */
-  .btn-share-day{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;background:rgba(37,211,102,0.1);color:#25d366;border:1.5px solid rgba(37,211,102,0.3);border-radius:12px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
+  .btn-share-day{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;background:rgba(37,211,102,0.1);color:#25d366;border:1.5px solid rgba(37,211,102,0.3);border-radius:12px;padding:10px;font-size:calc(13px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
   .btn-share-day:active{opacity:0.7;}
   /* SHARE BTN MES */
   .btn-share-mes{background:var(--card2);border:none;color:#25d366;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
@@ -153,24 +173,24 @@
   .pdf-modal-bg.open{display:flex;}
   .pdf-modal{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px calc(24px + var(--safe-bottom));width:100%;max-width:430px;animation:slideUp 0.3s cubic-bezier(.32,.72,0,1);}
   .pdf-modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
-  .pdf-modal h3{font-size:17px;font-weight:800;margin-bottom:6px;}
-  .pdf-modal p{font-size:12px;color:var(--muted2);margin-bottom:16px;}
+  .pdf-modal h3{font-size:calc(17px * var(--fs));font-weight:800;margin-bottom:6px;}
+  .pdf-modal p{font-size:calc(12px * var(--fs));color:var(--muted2);margin-bottom:16px;}
   .pdf-opt{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card2);border:1.5px solid var(--border);border-radius:14px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;}
   .pdf-opt:active{opacity:0.7;}
   .pdf-opt.sel{border-color:var(--accent);background:rgba(108,99,255,0.1);}
-  .pdf-opt-icon{font-size:24px;flex-shrink:0;}
-  .pdf-opt-info h4{font-size:14px;font-weight:700;margin-bottom:2px;}
-  .pdf-opt-info p{font-size:11px;color:var(--muted2);}
+  .pdf-opt-icon{font-size:calc(24px * var(--fs));flex-shrink:0;}
+  .pdf-opt-info h4{font-size:calc(14px * var(--fs));font-weight:700;margin-bottom:2px;}
+  .pdf-opt-info p{font-size:calc(11px * var(--fs));color:var(--muted2);}
   .pdf-check{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pdf-opt.sel .pdf-check{background:var(--accent);border-color:var(--accent);}
-  .btn-generar{width:100%;margin-top:14px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-generar{width:100%;margin-top:14px;background:var(--accent);color:white;border:none;border-radius:14px;padding:14px;font-size:calc(16px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-generar:active{opacity:0.8;}
   /* CANVAS OFFSCREEN */
   #canvas-dia{position:fixed;left:-9999px;top:0;width:390px;background:#0f1117;padding:24px;border-radius:20px;}
-  .ff textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;resize:none;min-height:70px;line-height:1.5;}
+  .ff textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:calc(14px * var(--fs));font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;resize:none;min-height:70px;line-height:1.5;}
   .ff textarea:focus{border-color:var(--accent);}
-  .nota-preview{font-size:11px;color:var(--muted2);max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-style:italic;}
-  .btn-nota{display:flex;align-items:center;gap:6px;width:100%;margin-top:10px;background:var(--card2);color:var(--muted2);border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
+  .nota-preview{font-size:calc(11px * var(--fs));color:var(--muted2);max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-style:italic;}
+  .btn-nota{display:flex;align-items:center;gap:6px;width:100%;margin-top:10px;background:var(--card2);color:var(--muted2);border:1.5px solid var(--border);border-radius:12px;padding:11px 14px;font-size:calc(13px * var(--fs));font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;transition:all 0.2s;}
   .btn-nota:active{opacity:0.7;}
   .btn-nota.has-nota{color:var(--accent2);border-color:rgba(74,222,128,0.4);background:rgba(74,222,128,0.06);}
   /* NOTA MODAL */
@@ -179,46 +199,46 @@
   .nota-modal{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px calc(24px + var(--safe-bottom));width:100%;max-width:430px;animation:slideUp 0.3s cubic-bezier(.32,.72,0,1);}
   .nota-modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
   .nota-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-  .nota-modal-header h3{font-size:17px;font-weight:800;}
-  .nota-modal-header .nota-fecha{font-size:12px;color:var(--muted2);}
-  .nota-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:15px;font-family:-apple-system,sans-serif;padding:14px;outline:none;-webkit-appearance:none;resize:none;min-height:140px;line-height:1.6;margin-bottom:12px;}
+  .nota-modal-header h3{font-size:calc(17px * var(--fs));font-weight:800;}
+  .nota-modal-header .nota-fecha{font-size:calc(12px * var(--fs));color:var(--muted2);}
+  .nota-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:calc(15px * var(--fs));font-family:-apple-system,sans-serif;padding:14px;outline:none;-webkit-appearance:none;resize:none;min-height:140px;line-height:1.6;margin-bottom:12px;}
   .nota-textarea:focus{border-color:var(--accent);}
   .nota-modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .btn-nota-cancel{background:var(--card2);color:var(--muted2);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
-  .btn-nota-save{background:var(--accent);color:white;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-nota-cancel{background:var(--card2);color:var(--muted2);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:calc(15px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .btn-nota-save{background:var(--accent);color:white;border:none;border-radius:12px;padding:13px;font-size:calc(15px * var(--fs));font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;}
   .btn-nota-save:active{opacity:0.8;}
   .nota-inline{margin-top:10px;background:rgba(74,222,128,0.07);border:1.5px solid rgba(74,222,128,0.25);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s;}
   .nota-inline:active{opacity:0.7;}
-  .nota-inline-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
-  .nota-inline-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
-  .nota-inline-edit{font-size:10px;color:var(--muted);margin-top:6px;text-align:right;}
+  .nota-inline-label{font-size:calc(9px * var(--fs));font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+  .nota-inline-text{font-size:calc(13px * var(--fs));color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  .nota-inline-edit{font-size:calc(10px * var(--fs));color:var(--muted);margin-top:6px;text-align:right;}
   /* USUARIO FIELD */
   .ff-usuario{position:relative;grid-column:1/-1;margin-top:2px;}
-  .ff-usuario label{display:block;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .ff-usuario input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px 10px 36px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
+  .ff-usuario label{display:block;font-size:calc(10px * var(--fs));font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .ff-usuario input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:calc(15px * var(--fs));font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px 10px 36px;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
   .ff-usuario input:focus{border-color:var(--accent);}
   .ff-usuario .user-icon{position:absolute;left:11px;top:50%;transform:translateY(4px);color:var(--muted);pointer-events:none;}
   .usuario-sugs{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--border);border-radius:12px;z-index:50;overflow:hidden;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
   .usuario-sugs.open{display:block;}
-  .usuario-sug-item{padding:11px 14px;cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .usuario-sug-item{padding:11px 14px;cursor:pointer;font-size:calc(14px * var(--fs));font-weight:600;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line-soft);}
   .usuario-sug-item:last-child{border-bottom:none;}
   .usuario-sug-item:active{background:rgba(108,99,255,0.1);}
-  .usuario-sug-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;}
-  .tag-usuario{background:rgba(108,99,255,0.15);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+  .usuario-sug-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:calc(12px * var(--fs));font-weight:800;color:white;flex-shrink:0;}
+  .tag-usuario{background:rgba(108,99,255,0.15);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:calc(11px * var(--fs));font-weight:700;}
   /* EXTRAS PICADAS */
   .pic-base-row{display:flex;align-items:center;gap:8px;margin-top:10px;background:rgba(249,115,22,0.07);border:1.5px solid rgba(249,115,22,0.2);border-radius:12px;padding:10px 14px;}
-  .pic-base-label{font-size:11px;font-weight:700;color:var(--muted2);flex:1;}
-  .pic-base-val{font-size:15px;font-weight:800;color:var(--accent3);}
+  .pic-base-label{font-size:calc(11px * var(--fs));font-weight:700;color:var(--muted2);flex:1;}
+  .pic-base-val{font-size:calc(15px * var(--fs));font-weight:800;color:var(--accent3);}
   .pic-base-edit{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex;align-items:center;}
   .pic-base-edit:active{color:var(--accent3);}
-  .pic-base-input{width:80px;background:var(--bg);border:1.5px solid var(--accent3);border-radius:8px;color:var(--text);font-size:15px;font-weight:800;font-family:-apple-system,sans-serif;padding:4px 8px;text-align:center;outline:none;display:none;}
+  .pic-base-input{width:80px;background:var(--bg);border:1.5px solid var(--accent3);border-radius:8px;color:var(--text);font-size:calc(15px * var(--fs));font-weight:800;font-family:-apple-system,sans-serif;padding:4px 8px;text-align:center;outline:none;display:none;}
   .extras-box{margin-top:8px;background:rgba(74,222,128,0.07);border:1.5px solid rgba(74,222,128,0.2);border-radius:12px;padding:10px 14px;display:none;}
   .extras-box.visible{display:block;}
   .extras-row{display:flex;justify-content:space-between;align-items:center;}
-  .extras-label{font-size:11px;font-weight:700;color:var(--muted2);}
-  .extras-val{font-size:18px;font-weight:800;color:var(--accent2);}
-  .extras-sub{font-size:10px;color:var(--muted);margin-top:2px;}
-  .tag-extras{background:rgba(74,222,128,0.15);color:var(--accent2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+  .extras-label{font-size:calc(11px * var(--fs));font-weight:700;color:var(--muted2);}
+  .extras-val{font-size:calc(18px * var(--fs));font-weight:800;color:var(--accent2);}
+  .extras-sub{font-size:calc(10px * var(--fs));color:var(--muted);margin-top:2px;}
+  .tag-extras{background:rgba(74,222,128,0.15);color:var(--accent2);border-radius:6px;padding:2px 8px;font-size:calc(11px * var(--fs));font-weight:700;}
   /* TOGGLE DESCUENTO */
   .toggle-descuento{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all 0.2s;user-select:none;-webkit-user-select:none;}
   .toggle-descuento.activo{background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.4);}
@@ -228,20 +248,38 @@
   .toggle-thumb{width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:left 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
   .toggle-track.on .toggle-thumb{left:21px;}
   .toggle-desc-info{flex:1;}
-  .toggle-desc-title{font-size:13px;font-weight:700;color:var(--muted2);}
+  .toggle-desc-title{font-size:calc(13px * var(--fs));font-weight:700;color:var(--muted2);}
   .toggle-descuento.activo .toggle-desc-title{color:var(--accent3);}
-  .toggle-desc-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+  .toggle-desc-sub{font-size:calc(10px * var(--fs));color:var(--muted);margin-top:1px;}
   /* REGLAS DE DESCUENTO ENTRE MESES */
   .desc-rule{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
   .desc-rule-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
-  .desc-rule-title{font-size:13px;font-weight:700;}
-  .desc-rule-monto{font-size:14px;font-weight:800;color:var(--red);white-space:nowrap;}
-  .desc-rule-sub{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4;}
-  .desc-rule-del{background:none;border:none;color:var(--red);font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;padding:0;font-family:-apple-system,sans-serif;}
-  .desc-empty{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .desc-rule-title{font-size:calc(13px * var(--fs));font-weight:700;}
+  .desc-rule-monto{font-size:calc(14px * var(--fs));font-weight:800;color:var(--red);white-space:nowrap;}
+  .desc-rule-sub{font-size:calc(11px * var(--fs));color:var(--muted2);margin-top:4px;line-height:1.4;}
+  .desc-rule-del{background:none;border:none;color:var(--red);font-size:calc(11px * var(--fs));font-weight:700;cursor:pointer;margin-top:8px;padding:0;font-family:-apple-system,sans-serif;}
+  .desc-empty{font-size:calc(12px * var(--fs));color:var(--muted);margin-bottom:6px;}
   .desc-card-warn{margin-top:8px;background:rgba(244,63,94,0.07);border:1.5px solid rgba(244,63,94,0.25);border-radius:12px;padding:10px 14px;}
-  select.desc-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;appearance:none;}
+  select.desc-select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:calc(15px * var(--fs));font-weight:600;font-family:-apple-system,sans-serif;padding:10px 12px;outline:none;-webkit-appearance:none;appearance:none;}
   select.desc-select:focus{border-color:var(--accent);}
+  /* FESTIVO */
+  .toggle-descuento.festivo.activo{background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.4);}
+  .toggle-descuento.festivo.activo .toggle-desc-title{color:var(--red);}
+  .toggle-track.festivo.on{background:var(--red);}
+  .tag-festivo{background:rgba(244,63,94,0.15);color:var(--red);border-radius:6px;padding:2px 8px;font-size:calc(11px * var(--fs));font-weight:700;}
+  /* AJUSTES */
+  .aj-sec{margin-bottom:18px;}
+  .aj-title{font-size:calc(11px * var(--fs));font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px;}
+  .aj-seg{display:grid;gap:8px;}
+  .aj-seg.c2{grid-template-columns:1fr 1fr;}
+  .aj-seg.c4{grid-template-columns:repeat(4,1fr);}
+  .aj-btn{background:var(--card2);border:1.5px solid var(--border);color:var(--muted2);border-radius:14px;padding:12px 4px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:700;font-size:calc(13px * var(--fs));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+  .aj-btn.sel{border-color:var(--accent);background:rgba(108,99,255,0.12);color:var(--accent);}
+  .aj-btn:active{opacity:.7;}
+  .aj-btn .aa{font-weight:800;line-height:1;}
+  .aj-btn small{font-size:calc(10px * var(--fs));font-weight:600;}
+  .aj-preview{margin-top:10px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:calc(14px * var(--fs));color:var(--text);}
+  .aj-note{font-size:calc(12px * var(--fs));color:var(--muted2);line-height:1.5;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.25);border-radius:12px;padding:10px 14px;}
 </style>
 </head>
 <body>
@@ -259,6 +297,9 @@
       </button>
       <button class="icon-btn" onclick="abrirDescuentosModal()" title="Descuentos entre meses">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.2"/><circle cx="17.5" cy="17.5" r="2.2"/></svg>
+      </button>
+      <button class="icon-btn" onclick="abrirAjustes()" title="Ajustes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
   </div>
@@ -415,6 +456,32 @@
   </div>
 </div>
 
+<!-- AJUSTES MODAL -->
+<div class="pdf-modal-bg" id="ajustes-modal-bg" onclick="cerrarAjustes(event)">
+  <div class="pdf-modal" style="max-height:85vh;overflow-y:auto;">
+    <div class="pdf-modal-handle"></div>
+    <h3>⚙️ Ajustes</h3>
+    <p>Personaliza cómo se ve la app.</p>
+    <div class="aj-sec">
+      <div class="aj-title">Apariencia</div>
+      <div class="aj-seg c2">
+        <button class="aj-btn" id="aj-tema-dark" onclick="setTema('dark')"><span style="font-size:calc(22px * var(--fs))">🌙</span>Oscuro</button>
+        <button class="aj-btn" id="aj-tema-light" onclick="setTema('light')"><span style="font-size:calc(22px * var(--fs))">☀️</span>Claro</button>
+      </div>
+    </div>
+    <div class="aj-sec">
+      <div class="aj-title">Tamaño de letra</div>
+      <div class="aj-seg c4" id="aj-fs"></div>
+      <div class="aj-preview">Así se ve el texto · 8 h × €11.98 = €95.84</div>
+    </div>
+    <div class="aj-sec">
+      <div class="aj-title">Días festivos</div>
+      <div class="aj-note">🎉 Abre un día y activa <b>Día festivo</b>. Ese día se paga al mismo precio que el domingo (el valor de «€/h Domingo»).</div>
+    </div>
+    <button class="btn-generar" onclick="cerrarAjustes()">Listo</button>
+  </div>
+</div>
+
 <script>
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -481,7 +548,7 @@ function getFechas(mes) {
 // ─── CONFIG (precio por hora: Lun-Vie, Sábado, Domingo) ───
 const CFG_IDS = { sem:'cfg-sem', sab:'cfg-sab', dom:'cfg-dom', rde:'cfg-rde', segsocial:'cfg-segsocial' };
 const CFG_DEF = { sem:11.98, sab:11.98, dom:11.98, rde:20.5, segsocial:6.35 };
-const NOMTIPO = { sem:'Lun-Vie', sab:'Sábado', dom:'Domingo' };
+const NOMTIPO = { sem:'Lun-Vie', sab:'Sábado', dom:'Domingo', fes:'Festivo' };
 function getConfig() {
   const c = {};
   for (const k in CFG_IDS) {
@@ -497,27 +564,28 @@ function cargarConfig() {
   for (const k in CFG_IDS) if (c[k] != null) document.getElementById(CFG_IDS[k]).value = c[k];
 }
 const tipoDia = (f) => f.getDay() === 6 ? 'sab' : f.getDay() === 0 ? 'dom' : 'sem';
-const DESCANSO_MIN = 30; // minutos de comida que no se cobran
-function horasEntre(hin, hout, descMin) {
+// Un día marcado como festivo se paga al precio del domingo
+const tipoDiaE = (f, e) => (e && e.festivo) ? 'fes' : tipoDia(f);
+const precioTipo = (c, k) => k === 'fes' ? c.dom : c[k];
+function horasEntre(hin, hout) {
   if (!hin || !hout) return null;
   const [h1, m1] = hin.split(':').map(Number), [h2, m2] = hout.split(':').map(Number);
   let min = (h2 * 60 + m2) - (h1 * 60 + m1);
   if (min < 0) min += 1440;
-  min = Math.max(0, min - (descMin || 0));
   return Math.round(min / 60 * 100) / 100;
 }
 // Suma de horas y dinero por tipo de día (cada día usa su precio: Lun-Vie / Sábado / Domingo)
 function sumarHoras(datos, mes) {
   const c = getConfig(), fechas = getFechas(mes);
-  const h = { sem:0, sab:0, dom:0 }, d = { sem:0, sab:0, dom:0 };
+  const h = { sem:0, sab:0, dom:0, fes:0 }, d = { sem:0, sab:0, dom:0, fes:0 };
   let dias = 0;
   datos.forEach(e => {
     const hrs = parsear(e.horas), f = fechas[e.idx];
     if (hrs <= 0 || !f) return;
-    const k = tipoDia(f);
-    h[k] += hrs; d[k] += hrs * c[k]; dias++;
+    const k = tipoDiaE(f, e);
+    h[k] += hrs; d[k] += hrs * precioTipo(c, k); dias++;
   });
-  return { h, d, dias, totalHoras: h.sem + h.sab + h.dom, bruto: d.sem + d.sab + d.dom };
+  return { h, d, dias, totalHoras: h.sem + h.sab + h.dom + h.fes, bruto: d.sem + d.sab + d.dom + d.fes };
 }
 
 // ─── HELPERS ───
@@ -605,17 +673,17 @@ function renderResumen(datos) {
   const r = calcular(datos), c = getConfig();
   const f1 = (n) => n.toFixed(1).replace(/\.0$/, '');
   document.getElementById('resumen-grid').innerHTML =
-    '<div class="r-card"><div class="r-label">Horas totales</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">Sem ' + f1(r.h.sem) + ' · Sáb ' + f1(r.h.sab) + ' · Dom ' + f1(r.h.dom) + '</div></div>' +
-    '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:18px">' + fmt(r.bruto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
-    '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:26px">' + r.dias + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
-    '<div class="r-card"><div class="r-label">Fin de semana</div><div class="r-val c-orange" style="font-size:18px">' + fmt(r.d.sab + r.d.dom) + '</div><div class="r-sub">Sáb ' + fmt(r.d.sab) + ' · Dom ' + fmt(r.d.dom) + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Horas totales</div><div class="r-val c-purple">' + r.totalHoras.toFixed(1) + ' h</div><div class="r-sub">Sem ' + f1(r.h.sem) + ' · Sáb ' + f1(r.h.sab) + ' · Dom ' + f1(r.h.dom) + (r.h.fes > 0 ? ' · Fes ' + f1(r.h.fes) : '') + '</div></div>' +
+    '<div class="r-card"><div class="r-label">Bruto</div><div class="r-val" style="font-size:calc(18px * var(--fs))">' + fmt(r.bruto) + '</div><div class="r-sub">Deduc: <span class="c-red">' + fmt(r.deducciones) + '</span></div></div>' +
+    '<div class="r-card"><div class="r-label">Días trabajados</div><div class="r-val" style="font-size:calc(26px * var(--fs))">' + r.dias + '</div><div class="r-sub">de ' + getDias() + ' días</div></div>' +
+    '<div class="r-card"><div class="r-label">' + (r.h.fes > 0 ? 'Finde + festivos' : 'Fin de semana') + '</div><div class="r-val c-orange" style="font-size:calc(18px * var(--fs))">' + fmt(r.d.sab + r.d.dom + r.d.fes) + '</div><div class="r-sub">Sáb ' + fmt(r.d.sab) + ' · Dom ' + fmt(r.d.dom) + (r.h.fes > 0 ? ' · Fes ' + fmt(r.d.fes) : '') + '</div></div>' +
     (r.descuentos > 0 ?
-      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5);padding:11px 13px;"><div class="r-label" style="font-size:9px;margin-bottom:3px;">📉 Descuento entre meses</div><div class="r-val c-red" style="font-size:15px">−' + fmt(r.descuentos) + '</div><div class="r-sub" style="font-size:10px;margin-top:2px;">' +
+      '<div class="r-card full" style="border-color:rgba(244,63,94,0.5);padding:11px 13px;"><div class="r-label" style="font-size:calc(9px * var(--fs));margin-bottom:3px;">📉 Descuento entre meses</div><div class="r-val c-red" style="font-size:calc(15px * var(--fs))">−' + fmt(r.descuentos) + '</div><div class="r-sub" style="font-size:calc(10px * var(--fs));margin-top:2px;">' +
         r.descuentosDetalle.map(function(d) {
           const [oy, om] = d.origen.split('-').map(Number);
           return d.porcentaje + '% del bruto de ' + MESES[om-1] + ' ' + oy + ' (-' + fmt(d.monto) + ')';
         }).join(' · ') + '</div></div>' : '') +
-    '<div class="r-card full"><div class="r-label">💰 Neto a Cobrar</div><div class="r-val c-green" style="font-size:32px;letter-spacing:-1px">' + fmt(r.neto) + '</div><div class="r-sub">RDE ' + c.rde + '%: ' + fmt(r.rde) + ' · Seg.Social ' + c.segsocial + '%: ' + fmt(r.segSocial) + '</div></div>';
+    '<div class="r-card full"><div class="r-label">💰 Neto a Cobrar</div><div class="r-val c-green" style="font-size:calc(32px * var(--fs));letter-spacing:-1px">' + fmt(r.neto) + '</div><div class="r-sub">RDE ' + c.rde + '%: ' + fmt(r.rde) + ' · Seg.Social ' + c.segsocial + '%: ' + fmt(r.segSocial) + '</div></div>';
 }
 
 // ─── RENDER DÍAS ───
@@ -629,9 +697,9 @@ function renderDias(datos) {
     const entrada = datos.find(x => x.idx === idx) || null;
     const hex   = entrada ? parsear(entrada.horas) : 0;
     const nota  = entrada && entrada.nota ? entrada.nota : '';
-    const tipo  = tipoDia(fecha), precio = c[tipo];
+    const precio = precioTipo(c, tipoDiaE(fecha, entrada));
     const tieneAlgo = !!entrada;
-    const dotCls = hex > 0 ? 'has-horas' : (nota || (entrada && entrada.usuario)) ? 'has-data' : '';
+    const dotCls = hex > 0 ? 'has-horas' : (nota || (entrada && (entrada.usuario || entrada.festivo))) ? 'has-data' : '';
     const esHoy = fecha.getTime() === hoy.getTime();
 
     const card = document.createElement('div');
@@ -642,10 +710,11 @@ function renderDias(datos) {
     hdr.innerHTML =
       '<div class="day-dot ' + dotCls + '"></div>' +
       '<div class="day-info">' +
-        '<div class="day-name">' + DIAS[fecha.getDay()] + (esHoy ? ' <span style="color:var(--accent);font-size:11px">· Hoy</span>' : '') + '</div>' +
+        '<div class="day-name">' + DIAS[fecha.getDay()] + (esHoy ? ' <span style="color:var(--accent);font-size:calc(11px * var(--fs))">· Hoy</span>' : '') + '</div>' +
         '<div class="day-date">' + fecha.getDate() + ' de ' + MESES[fecha.getMonth()] + ' ' + fecha.getFullYear() + '</div>' +
       '</div>' +
       '<div class="day-tags">' +
+        (entrada && entrada.festivo ? '<span class="tag-festivo">🎉 Festivo</span>' : '') +
         (entrada && entrada.usuario ? '<span class="tag-usuario">👤 ' + entrada.usuario + '</span>' : '') +
         (hex > 0 ? '<span class="tag pu">' + hex + 'h</span><span class="tag-extras">' + fmt(hex * precio) + '</span>' : '') +
         (nota ? '<span class="nota-preview">📝 ' + nota + '</span>' : '') +
@@ -672,15 +741,6 @@ function renderDias(datos) {
     }
 
     const notaActual = nota;
-    // Descanso de comida: días nuevos arrancan activado; días ya guardados sin el campo quedan como estaban (sin descuento)
-    let descActivo = (entrada && (entrada.horaEntrada || entrada.horaSalida)) ? !!entrada.descanso : true;
-    const descRow = document.createElement('div');
-    descRow.className = 'desc-row' + (descActivo ? ' on' : '');
-    function pintarDesc() {
-      descRow.classList.toggle('on', descActivo);
-      descRow.innerHTML = '<div class="desc-txt">🍽️ Descontar ' + DESCANSO_MIN + ' min de comida<span class="desc-sub">' + (descActivo ? 'No se cobran' : 'Se cuenta todo el tiempo') + '</span></div><div class="desc-sw"></div>';
-    }
-    pintarDesc();
     const { ff: ffHin,  inp: inHin  } = mkInput('Hora entrada', 'time', 'hin-'  + idx, entrada?.horaEntrada);
     const { ff: ffHout, inp: inHout } = mkInput('Hora salida',  'time', 'hout-' + idx, entrada?.horaSalida);
     const { ff: ffHex,  inp: inHex  } = mkInput('Horas trabajadas', 'number', 'hex-' + idx, hex > 0 ? hex : '', 'decimal', '0.25');
@@ -703,15 +763,29 @@ function renderDias(datos) {
     ffUsuario.appendChild(usuSugs);
 
     // Caja de ganancia del día (horas × precio del tipo de día)
+    // Interruptor de día festivo (se cobra como domingo)
+    let esFestivo = !!(entrada && entrada.festivo);
+    const tgFes = document.createElement('div');
+    tgFes.className = 'toggle-descuento festivo';
+    tgFes.innerHTML = '<div class="toggle-track festivo"><div class="toggle-thumb"></div></div><div class="toggle-desc-info"><div class="toggle-desc-title">🎉 Día festivo</div><div class="toggle-desc-sub"></div></div>';
+    function actualizarFestivoUI() {
+      tgFes.classList.toggle('activo', esFestivo);
+      tgFes.querySelector('.toggle-track').classList.toggle('on', esFestivo);
+      tgFes.querySelector('.toggle-desc-sub').textContent = esFestivo ? 'Se paga como domingo · ' + fmt(c.dom) + '/h' : 'Actívalo si es festivo (se paga como domingo)';
+    }
+    actualizarFestivoUI();
+
     const payBox = document.createElement('div');
     payBox.className = 'extras-box visible';
     function actualizarPay() {
       const hv = parsear(inHex.value);
-      payBox.innerHTML = '<div class="extras-row"><div><div class="extras-label">' + NOMTIPO[tipo] + ' · ' + fmt(precio) + '/h</div><div class="extras-sub">' + hv + ' h × ' + fmt(precio) + '</div></div><div class="extras-val">' + fmt(hv * precio) + '</div></div>';
+      const tAct = esFestivo ? 'fes' : tipoDia(fecha), pAct = precioTipo(c, tAct);
+      payBox.innerHTML = '<div class="extras-row"><div><div class="extras-label">' + NOMTIPO[tAct] + ' · ' + fmt(pAct) + '/h</div><div class="extras-sub">' + hv + ' h × ' + fmt(pAct) + '</div></div><div class="extras-val">' + fmt(hv * pAct) + '</div></div>';
     }
+    tgFes.addEventListener('click', () => { esFestivo = !esFestivo; actualizarFestivoUI(); actualizarPay(); });
     // Cada vez que cambia entrada/salida, se recalculan las horas
     function autoCalc() {
-      const hv = horasEntre(inHin.value, inHout.value, descActivo ? DESCANSO_MIN : 0);
+      const hv = horasEntre(inHin.value, inHout.value);
       if (hv === null) return;
       inHex.value = hv;
       inHex.style.borderColor = 'var(--accent2)';
@@ -720,13 +794,12 @@ function renderDias(datos) {
     }
     [inHin, inHout].forEach(i => { i.addEventListener('change', autoCalc); i.addEventListener('input', autoCalc); });
     inHex.addEventListener('input', actualizarPay);
-    descRow.addEventListener('click', () => { descActivo = !descActivo; pintarDesc(); autoCalc(); });
     actualizarPay();
 
     grid.appendChild(ffHin); grid.appendChild(ffHout);
-    grid.appendChild(descRow);
     grid.appendChild(ffHex); grid.appendChild(ffUsuario);
     form.appendChild(grid);
+    form.appendChild(tgFes);
     form.appendChild(payBox);
 
     const notaContainer = document.createElement('div');
@@ -738,12 +811,12 @@ function renderDias(datos) {
     btnG.className = 'btn-guardar'; btnG.textContent = 'Guardar';
     btnG.addEventListener('click', () => {
       let datos = getDatos();
-      const hv = horasEntre(inHin.value, inHout.value, descActivo ? DESCANSO_MIN : 0);
+      const hv = horasEntre(inHin.value, inHout.value);
       const h = hv !== null ? hv : parsear(inHex.value);
       const usuario = inUsuario.value.trim();
       datos = datos.filter(x => x.idx !== idx);
-      if (h > 0 || inHin.value || inHout.value || notaActual || usuario)
-        datos.push({ idx, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota:notaActual, usuario, descanso:descActivo });
+      if (h > 0 || inHin.value || inHout.value || notaActual || usuario || esFestivo)
+        datos.push({ idx, horas:h, horaEntrada:inHin.value, horaSalida:inHout.value, nota:notaActual, usuario, festivo:esFestivo });
       setDatos(datos);
       toggleDia(idx);
       renderAll();
@@ -830,6 +903,7 @@ function renderHistorial() {
           row('Lun-Vie (' + fmt(c.sem) + '/h)', r.h.sem.toFixed(1) + 'h → ' + fmt(r.d.sem)) +
           row('Sábados (' + fmt(c.sab) + '/h)', r.h.sab.toFixed(1) + 'h → ' + fmt(r.d.sab)) +
           row('Domingos (' + fmt(c.dom) + '/h)', r.h.dom.toFixed(1) + 'h → ' + fmt(r.d.dom)) +
+          (r.h.fes > 0 ? row('Festivos (' + fmt(c.dom) + '/h)', r.h.fes.toFixed(1) + 'h → ' + fmt(r.d.fes)) : '') +
           row('Horas totales', r.totalHoras.toFixed(1) + 'h') +
           row('Bruto', fmt(r.bruto)) +
           (r.descuentos > 0 ? row('Descuento entre meses (' + r.descuentosDetalle.map(d => d.porcentaje + '%').join(', ') + ')', '-' + fmt(r.descuentos), 'c-red') : '') +
@@ -895,7 +969,7 @@ function guardarNota() {
   } else if (nota) {
     datos.push({ idx, horas:0, horaEntrada:'', horaSalida:'', nota });
   }
-  datos = datos.filter(x => parsear(x.horas) > 0 || x.horaEntrada || x.nota || x.usuario);
+  datos = datos.filter(x => parsear(x.horas) > 0 || x.horaEntrada || x.nota || x.usuario || x.festivo);
   setDatos(datos);
   document.getElementById('nota-modal-bg').classList.remove('open');
   // Update inline container directly without full re-render
@@ -915,7 +989,7 @@ async function compartirDia(idx, fecha, entrada) {
   const nota = entrada && entrada.nota ? entrada.nota : '';
   const hin  = entrada && entrada.horaEntrada ? entrada.horaEntrada : '--:--';
   const hout = entrada && entrada.horaSalida  ? entrada.horaSalida  : '--:--';
-  const tipo = tipoDia(fecha), precio = getConfig()[tipo], ganancia = hex * precio;
+  const tipo = tipoDiaE(fecha, entrada), precio = precioTipo(getConfig(), tipo), ganancia = hex * precio;
 
   const div = document.getElementById('canvas-dia');
   div.innerHTML = `
@@ -1001,7 +1075,7 @@ async function generarPDF() {
   ] : [
     { label:'TOTAL HORAS', val: r.totalHoras.toFixed(1)+' h', sub:'', color: ACC },
     { label:'DÍAS TRABAJADOS', val: String(r.dias), sub:'', color: GRN },
-    { label:'HORAS FINDE', val: f1(r.h.sab + r.h.dom)+' h', sub:'Sáb '+f1(r.h.sab)+'h · Dom '+f1(r.h.dom)+'h', color: ORG },
+    { label:'FINDE + FESTIVOS', val: f1(r.h.sab + r.h.dom + r.h.fes)+' h', sub:'Sáb '+f1(r.h.sab)+'h · Dom '+f1(r.h.dom)+'h · Fest '+f1(r.h.fes)+'h', color: ORG },
   ];
   const cw = completo ? 43.5 : 58;
   cols.forEach((col, i) => {
@@ -1030,7 +1104,7 @@ async function generarPDF() {
     const e = datos.find(x => x.idx === idx) || null;
     const hex = e ? parsear(e.horas) : 0;
     const nota = e && e.nota ? e.nota : '', usuario = e && e.usuario ? e.usuario : '';
-    const precio = c[tipoDia(fecha)], tieneAlgo = !!e;
+    const precio = precioTipo(c, tipoDiaE(fecha, e)), tieneAlgo = !!e;
     if (y2 > 272) { doc.addPage(); pagina(); y2 = 14; cabecera(); }
     if (tieneAlgo) { doc.setFillColor(...CARD); doc.rect(14, y2-3, 182, 8, 'F'); }
     const put = (txt, x, color, bold, size) => {
@@ -1039,6 +1113,7 @@ async function generarPDF() {
     };
     const rc = tieneAlgo ? TEXT : MUT;
     put(DIAS[fecha.getDay()].slice(0,3), COL.dia, rc, tieneAlgo);
+    if (e && e.festivo) { doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(244,63,94); doc.text('FEST.', COL.dia, y2+4.6); }
     put(fecha.getDate() + '/' + String(fecha.getMonth()+1).padStart(2,'0'), COL.fecha, rc, tieneAlgo);
     if (usuario) put(usuario.length > 20 ? usuario.slice(0,20)+'…' : usuario, COL.usuario, ACC, true);
     else put('-', COL.usuario, MUT, false);
@@ -1057,7 +1132,7 @@ async function generarPDF() {
   y2 += 4;
   doc.setDrawColor(...ACC); doc.setLineWidth(0.4); doc.line(14, y2, 196, y2); y2 += 6;
   doc.setFontSize(8); doc.setFont('helvetica','bold');
-  [['Semana','sem',ORG,14],['Sábado','sab',ACC,78],['Domingo','dom',GRN,140]].forEach(([n, k, col, x]) => {
+  [['Semana','sem',ORG,14],['Sábado','sab',ACC,60],['Domingo','dom',GRN,106],['Festivo','fes',[244,63,94],152]].forEach(([n, k, col, x]) => {
     doc.setTextColor(...col);
     doc.text(n + ': ' + f1(r.h[k]) + 'h' + (completo ? ' (' + fmt(r.d[k]) + ')' : ''), x, y2);
   });
@@ -1209,6 +1284,38 @@ function mostrarSugsUsuario(input, panel) {
     panel.appendChild(item);
   });
   panel.classList.add('open');
+}
+
+// ─── AJUSTES (tema + tamaño de letra) ───
+const FS_OPTS = [
+  { v:0.9,  l:'Pequeña',    aa:13 },
+  { v:1,    l:'Normal',     aa:16 },
+  { v:1.15, l:'Grande',     aa:19 },
+  { v:1.3,  l:'Muy grande', aa:22 }
+];
+function guardarAjustes(a) { try { localStorage.setItem(AJ_KEY, JSON.stringify(a)); } catch(e) {} }
+function renderAjustes() {
+  const a = getAjustes();
+  document.getElementById('aj-tema-dark').classList.toggle('sel', a.tema === 'dark');
+  document.getElementById('aj-tema-light').classList.toggle('sel', a.tema === 'light');
+  const cont = document.getElementById('aj-fs');
+  cont.innerHTML = '';
+  FS_OPTS.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'aj-btn' + (a.fs === o.v ? ' sel' : '');
+    const aa = document.createElement('span'); aa.className = 'aa'; aa.textContent = 'Aa'; aa.style.fontSize = o.aa + 'px';
+    const sm = document.createElement('small'); sm.textContent = o.l;
+    b.appendChild(aa); b.appendChild(sm);
+    b.addEventListener('click', () => setFs(o.v));
+    cont.appendChild(b);
+  });
+}
+function setTema(t) { const a = getAjustes(); a.tema = t; guardarAjustes(a); aplicarAjustes(a); renderAjustes(); }
+function setFs(v)   { const a = getAjustes(); a.fs = v;   guardarAjustes(a); aplicarAjustes(a); renderAjustes(); }
+function abrirAjustes() { renderAjustes(); document.getElementById('ajustes-modal-bg').classList.add('open'); }
+function cerrarAjustes(e) {
+  if (e && e.target !== document.getElementById('ajustes-modal-bg')) return;
+  document.getElementById('ajustes-modal-bg').classList.remove('open');
 }
 
 // ─── INIT ───
