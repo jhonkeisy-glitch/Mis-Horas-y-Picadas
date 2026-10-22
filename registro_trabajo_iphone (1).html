@@ -324,7 +324,6 @@ aplicarAjustes(getAjustes());
   <div class="cfg-item"><label>€/h Lun-Vie</label><input type="number" id="cfg-sem" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>€/h Sábado</label><input type="number" id="cfg-sab" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>€/h Domingo</label><input type="number" id="cfg-dom" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
-  <div class="cfg-item"><label>Descanso (min)</label><input type="number" id="cfg-descanso" step="5" min="0" inputmode="numeric" value="30" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>RDE %</label><input type="number" id="cfg-rde" step="0.1" value="20.5" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>Seg. Social %</label><input type="number" id="cfg-segsocial" step="0.1" value="6.35" oninput="guardarConfig();renderAll()"></div>
 </div>
@@ -474,6 +473,14 @@ aplicarAjustes(getAjustes());
       <div class="aj-title">Tamaño de letra</div>
       <div class="aj-seg c4" id="aj-fs"></div>
       <div class="aj-preview">Así se ve el texto · 8 h × €11.98 = €95.84</div>
+    </div>
+    <div class="aj-sec">
+      <div class="aj-title">Descanso</div>
+      <div class="ff">
+        <label>Minutos de descanso (no se pagan)</label>
+        <input type="number" id="cfg-descanso" step="5" min="0" inputmode="numeric" value="30" oninput="guardarConfig();renderAll()">
+      </div>
+      <div class="aj-preview" style="font-size:12px;color:var(--muted2)">Se descuentan solos de las horas cuando hay entrada y salida. Pon 0 para desactivarlo.</div>
     </div>
     <div class="aj-sec">
       <div class="aj-title">Días festivos</div>
