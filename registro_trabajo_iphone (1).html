@@ -324,6 +324,7 @@ aplicarAjustes(getAjustes());
   <div class="cfg-item"><label>€/h Lun-Vie</label><input type="number" id="cfg-sem" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>€/h Sábado</label><input type="number" id="cfg-sab" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>€/h Domingo</label><input type="number" id="cfg-dom" step="0.01" inputmode="decimal" value="11.98" oninput="guardarConfig();renderAll()"></div>
+  <div class="cfg-item"><label>Descanso (min)</label><input type="number" id="cfg-descanso" step="5" min="0" inputmode="numeric" value="30" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>RDE %</label><input type="number" id="cfg-rde" step="0.1" value="20.5" oninput="guardarConfig();renderAll()"></div>
   <div class="cfg-item"><label>Seg. Social %</label><input type="number" id="cfg-segsocial" step="0.1" value="6.35" oninput="guardarConfig();renderAll()"></div>
 </div>
@@ -546,8 +547,8 @@ function getFechas(mes) {
 }
 
 // ─── CONFIG (precio por hora: Lun-Vie, Sábado, Domingo) ───
-const CFG_IDS = { sem:'cfg-sem', sab:'cfg-sab', dom:'cfg-dom', rde:'cfg-rde', segsocial:'cfg-segsocial' };
-const CFG_DEF = { sem:11.98, sab:11.98, dom:11.98, rde:20.5, segsocial:6.35 };
+const CFG_IDS = { sem:'cfg-sem', sab:'cfg-sab', dom:'cfg-dom', rde:'cfg-rde', segsocial:'cfg-segsocial', descanso:'cfg-descanso' };
+const CFG_DEF = { sem:11.98, sab:11.98, dom:11.98, rde:20.5, segsocial:6.35, descanso:30 };
 const NOMTIPO = { sem:'Lun-Vie', sab:'Sábado', dom:'Domingo', fes:'Festivo' };
 function getConfig() {
   const c = {};
@@ -572,6 +573,7 @@ function horasEntre(hin, hout) {
   const [h1, m1] = hin.split(':').map(Number), [h2, m2] = hout.split(':').map(Number);
   let min = (h2 * 60 + m2) - (h1 * 60 + m1);
   if (min < 0) min += 1440;
+  min = Math.max(0, min - getConfig().descanso); // descanso no pagado, se descuenta solo
   return Math.round(min / 60 * 100) / 100;
 }
 // Suma de horas y dinero por tipo de día (cada día usa su precio: Lun-Vie / Sábado / Domingo)
